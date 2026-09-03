@@ -1,0 +1,143 @@
+# sllogger CI
+#
+# 流水线：
+#   1. test    — 多 Go 版本单元测试 + 竞态检测 + 覆盖率上传
+#   2. lint    — gofmt + go vet
+#   3. e2e     — 功能自检（9 项需求）+ 写入一致性校验
+#
+# 本机复现：make ci
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # go.mod 声明 go 1.21，因此在 1.21 与最新版上分别验证。
+        go: ["1.21", "1.22", "stable"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod
+
+      - name: Build
+        run: go build ./...
+
+      - name: Unit tests
+        run: go test ./... -count=1
+
+      # 竞态检测是异步写入路径的关键保障：AsyncWriter 的多生产者 /
+      # 关闭竞态曾暴露过真实的数据丢失缺陷（见 doc/benchmark_report.md）。
+      - name: Race detector
+        run: go test -race ./... -count=1
+
+      # 覆盖率必须用 -coverpkg 指定全部库包（逗号分隔），并排除
+      # example/*（main 包、无单元测试，会拉低汇总）。否则整体数字会被
+      # 严重低估：各库包 98~100%，汇总却显示 71.9%。
+      - name: Coverage
+        if: matrix.go == 'stable'
+        run: |
+          LIB_PKGS="./ ./buffer/... ./encoder/... ./internal/... ./slcore/... ./writer/..."
+          COVER_PKGS="./,./buffer/...,./encoder/...,./internal/...,./slcore/...,./writer/..."
+          go test $LIB_PKGS -covermode=atomic -coverpkg=$COVER_PKGS \
+            -coverprofile=coverage.out -count=1
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Upload coverage
+        if: matrix.go == 'stable'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          if-no-files-found: ignore
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "以下文件未格式化："
+            echo "$unformatted"
+            echo "请运行 make fmt"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          # 配置文件中的超时与 issue 上限已针对本仓库调整。
+          args: --config=.golangci.yml
+        continue-on-error: true
+
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      # 功能自检：逐条验证 9 项需求（日志路径/文件名/模板/大小滚动/
+      # 定时滚动/个数/类型总量/目录总量/保留时长），失败即以非 0 退出。
+      - name: Feature self-check
+        run: go run ./example/verify
+
+      # 一致性校验：每条日志携带唯一序号，落盘后反查，
+      # 验证"写入条数 == 落盘条数"，无丢失/重复/损坏/粘连。
+      - name: Write consistency
+        run: go run ./example/bench -mode check -n 300000 -g 32
+
+      # 阴性对照：BlockOnFull=false（主动丢弃策略）下，校验必须能检出
+      # 丢失，以此证明上面的"全通过"不是假阳性。
+      - name: Consistency check can detect loss
+        run: |
+          if go run ./example/bench -mode check -n 200000 -g 64 -nonblocking; then
+            echo "错误：丢弃模式下校验竟然通过了，说明校验方法无效"
+            exit 1
+          fi
+          echo "阴性对照通过：校验能正确检出丢失"
+
+      - name: Sync path consistency
+        run: go run ./example/bench -mode check -n 200000 -g 32 -sync
+
+      - name: High-frequency rotation consistency
+        run: go run ./example/bench -mode check -n 200000 -g 32 -maxsize 65536

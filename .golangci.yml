@@ -1,0 +1,86 @@
+# golangci-lint 配置
+#
+# 本机运行：golangci-lint run ./...
+# CI 中由 GitHub Actions 自动执行（.github/workflows/ci.yml）。
+#
+# 说明：本仓库追求零第三方依赖（go.mod 无 require），因此仅启用不依赖
+# 外部类型信息的检查项；go vet 已在 Makefile 与 CI 中单独执行。
+
+run:
+  timeout: 5m
+  # 不要因为测试文件里的辅助编码器（大量接口实现方法）而失败。
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    # 正确性
+    - errcheck      # 未处理的错误返回
+    - govet         # go vet
+    - ineffassign   # 无效赋值
+    - staticcheck   # 静态分析（SA 系列）
+    - unused        # 未使用的代码
+
+    # 风格与可读性
+    - gofmt         # 格式
+    - goimports     # import 分组与排序
+    - misspell      # 拼写错误（含注释中的英文）
+
+    # 简洁性
+    - gosimple      # 可简化的代码（S 系列）
+    - unconvert     # 冗余类型转换
+
+linters-settings:
+  errcheck:
+    # 测试中大量的 Write 调用返回值是有意忽略的。
+    exclude-functions:
+      - (*os.File).Close
+      - (io.Closer).Close
+
+  govet:
+    enable:
+      - shadow
+
+  misspell:
+    locale: US
+
+  staticcheck:
+    # SA1019 会对已废弃 API 告警；本仓库暂无此类用法。
+    checks:
+      - all
+      - -ST1000  # 包注释（可选）
+      - -ST1003  # 命名风格（本仓库沿用 zap 命名，不完全一致）
+      - -ST1016  # receiver 命名一致性
+      - -ST1020  # 注释格式
+
+issues:
+  # 最多报告的同类问题数
+  max-same-issues: 10
+  max-issues-per-linter: 50
+
+  exclude-rules:
+    # 测试文件允许更宽松：辅助编码器、重复字面量、忽略错误等。
+    - path: _test\.go
+      linters:
+        - errcheck
+        - unused
+        - staticcheck
+        - gosimple
+
+    # example 目录下的程序用于演示，允许直接打印与忽略部分错误。
+    - path: example/
+      linters:
+        - errcheck
+        - unused
+
+    # 测试辅助编码器里有大量为满足接口而存在的空方法。
+    - path: _test\.go
+      text: "unused-parameter"
+
+  # 排除常见问题，避免噪音
+  exclude-use-default: false
+  exclude:
+    # 错误字符串不应大写（测试中的哨兵错误有时需要）
+    - "error strings should not be capitalized"
+    # 接口方法注释（大量接口实现）
+    - "exported method .* should have comment"
