@@ -230,14 +230,11 @@ func seqName(seq int) string {
 	return s
 }
 
-// trailingSeq reports whether the last segment is a positive in-day sequence
-// number. At least two segments are required so that a purely numeric date
-// segment (e.g. DateLayout "20060102") is never mistaken for a sequence.
-func trailingSeq(segments []string) (int, bool) {
-	if len(segments) < 2 {
-		return 0, false
-	}
-	if seq, err := strconv.Atoi(segments[len(segments)-1]); err == nil && seq > 0 {
+// trailingNumeric reports whether s is a positive in-day sequence number. It is
+// used after the date has been stripped from a file name, so s can never be the
+// (possibly numeric) date segment — a numeric tail can therefore only be seq.
+func trailingNumeric(s string) (int, bool) {
+	if seq, err := strconv.Atoi(s); err == nil && seq > 0 {
 		return seq, true
 	}
 	return 0, false
@@ -273,42 +270,69 @@ func (n *Namer) parseFileName(name string, fi os.FileInfo) (parsedFile, bool) {
 
 	segments := strings.Split(middle, ".")
 
+	// The date is rendered by DateLayout and appears as the FIRST segment
+	// group. DateLayout may itself contain separators (e.g. "2006-01-02.15"
+	// yields "2026-09-12.01" with a dot), so the date is not a single
+	// dot-segment. Find the shortest prefix of segments that parses as the
+	// full DateLayout: time.Parse only succeeds when the candidate exactly
+	// matches the layout, which pins the date boundary precisely even when
+	// the date contains dots.
+	var (
+		date time.Time
+		rest []string
+		ok   bool
+	)
+	for k := 1; k <= len(segments); k++ {
+		candidate := strings.Join(segments[:k], ".")
+		if d, err := time.ParseInLocation(n.cfg.DateLayout, candidate, time.Local); err == nil {
+			date = d
+			rest = segments[k:]
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return pf, false
+	}
+	pf.date = date
+
 	// Optional trailing seq, for patterns with seq last
-	// (...{base}.{date}.{service}.{seq}.log).
-	if seq, ok := trailingSeq(segments); ok {
-		pf.seq = seq
-		segments = segments[:len(segments)-1]
+	// (...{base}.{date}.{service}.{seq}.log). The date has already been
+	// consumed above, so rest never holds the date; a numeric tail can only
+	// be a sequence number (a single-segment tail is valid here).
+	if len(rest) > 0 {
+		if seq, ok := trailingNumeric(rest[len(rest)-1]); ok {
+			pf.seq = seq
+			rest = rest[:len(rest)-1]
+		}
 	}
 
 	// Optional service/app anchor. Both the "<name><port>" form ({service})
 	// and the bare "<name>" form ({app}) are accepted.
 	if n.service != "" || n.cfg.ServiceName != "" {
-		if len(segments) < 2 {
+		if len(rest) == 0 {
 			return pf, false
 		}
-		last := segments[len(segments)-1]
+		last := rest[len(rest)-1]
 		if last != n.service && last != n.cfg.ServiceName {
 			return pf, false
 		}
-		segments = segments[:len(segments)-1]
+		rest = rest[:len(rest)-1]
 
 		// Patterns with seq before the anchor
 		// (...{base}.{date}.{seq}.{app}.log) leave seq trailing now.
-		if seq, ok := trailingSeq(segments); ok {
-			pf.seq = seq
-			segments = segments[:len(segments)-1]
+		if len(rest) > 0 {
+			if seq, ok := trailingNumeric(rest[len(rest)-1]); ok {
+				pf.seq = seq
+				rest = rest[:len(rest)-1]
+			}
 		}
 	}
 
-	if len(segments) != 1 {
+	if len(rest) != 0 {
 		return pf, false
 	}
 
-	date, err := time.ParseInLocation(n.cfg.DateLayout, segments[0], time.Local)
-	if err != nil {
-		return pf, false
-	}
-	pf.date = date
 	pf.path = n.cfg.Dir + string(os.PathSeparator) + name
 	if fi != nil {
 		pf.size = fi.Size()

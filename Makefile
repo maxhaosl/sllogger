@@ -15,7 +15,7 @@
 
 .PHONY: all fmt fmt-check build vet test race cover cover-html \
         bench stress verify check profile ci clean help \
-        example-calllog examples
+        example-calllog example-feign example-multitype examples
 
 # 示例程序输出目录（可覆盖，例如 BIN_DIR=/tmp/bin）。
 BIN_DIR ?= build/bin
@@ -176,12 +176,27 @@ example-calllog:
 	@mkdir -p $(BIN_DIR)
 	@go build -o $(BIN_DIR)/calllog ./example/calllog
 
+# 按小时切分 + 3 天清理示例：LOG_FEIGN.{yyyy-MM-dd.hh}.{serverName}{serverPort}.log
+# 运行：./build/bin/feign -logdir build/logs/feign -hours 80
+example-feign:
+	@echo ">> 构建示例 -> $(BIN_DIR)/feign"
+	@mkdir -p $(BIN_DIR)
+	@go build -o $(BIN_DIR)/feign ./example/feign
+
+# 多类型 + 按级别分流 + 每文件独立格式示例：
+#   LOG_FEIGN(json) / LOG_FEIGN_ERR(json, 仅 ERROR/WARN) / LOG_MGMONITOR(^ 模板)
+# 运行：./build/bin/multitype -logdir build/logs/multitype -hours 26 [-mode erroronly]
+example-multitype:
+	@echo ">> 构建示例 -> $(BIN_DIR)/multitype"
+	@mkdir -p $(BIN_DIR)
+	@go build -o $(BIN_DIR)/multitype ./example/multitype
+
 # 构建全部示例程序到 $(BIN_DIR)。
-examples: example-calllog
+examples: example-calllog example-feign example-multitype
 	@mkdir -p $(BIN_DIR)
 	@go build -o $(BIN_DIR)/verify ./example/verify
 	@go build -o $(BIN_DIR)/bench ./example/bench
-	@echo ">> 已构建：calllog verify bench -> $(BIN_DIR)"
+	@echo ">> 已构建：calllog feign verify bench -> $(BIN_DIR)"
 
 ## CI ###################################################################
 

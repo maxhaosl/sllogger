@@ -270,6 +270,66 @@ func BenchmarkTee(b *testing.B) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// 多输出（Config.Outputs）压测：对比单输出与多输出的吞吐与每操作分配。
+// 用 /dev/null 作下沉点，隔离出"编码 + 级别路由 + 扇出分发"的开销（不含真实磁盘 IO）。
+// ---------------------------------------------------------------------------
+
+func devNullPaths() []string { return []string{os.DevNull} }
+
+func jsonOutputTo(name string, levels []string) Output {
+	return Output{Name: name, Encoding: "json", OutputPaths: devNullPaths(), Levels: levels}
+}
+
+func benchMultiLog(b *testing.B, cfg Config) {
+	log, err := cfg.Build()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("benchmark message", String("key", "value"), Int("n", i))
+	}
+	b.StopTimer()
+	_ = log.Close()
+}
+
+// BenchmarkSingleOutputJSON 单输出（向后兼容路径）基线。
+func BenchmarkSingleOutputJSON(b *testing.B) {
+	benchMultiLog(b, Config{
+		Level:       NewAtomicLevelAt(DebugLevel),
+		Encoding:    "json",
+		OutputPaths: devNullPaths(),
+	})
+}
+
+// BenchmarkMultiOutputJSONBoth 两个输出都收 INFO：纯扇出（2 次编码）。
+func BenchmarkMultiOutputJSONBoth(b *testing.B) {
+	benchMultiLog(b, Config{
+		Level: NewAtomicLevelAt(DebugLevel),
+		Outputs: []Output{
+			jsonOutputTo("a", nil),
+			jsonOutputTo("b", nil),
+		},
+	})
+}
+
+// BenchmarkMultiOutputLevelRouting 三个输出（feign 全量 + feign_err 仅 error/warn +
+// mgmonitor 模板），写 INFO：feign_err 被级别路由过滤，验证路由门槛的零分配开销。
+func BenchmarkMultiOutputLevelRouting(b *testing.B) {
+	cfg := Config{
+		Level: NewAtomicLevelAt(DebugLevel),
+		Outputs: []Output{
+			jsonOutputTo("feign", []string{"info", "debug", "trace", "warn", "error"}),
+			jsonOutputTo("feign_err", []string{"error", "warn"}),
+			{Name: "mgmonitor", Encoding: "template", OutputPaths: devNullPaths(),
+				TemplateConfig: encoder.TemplateConfig{Separator: "^", Template: "log_level^date^log_msg"}},
+		},
+	}
+	benchMultiLog(b, cfg)
+}
+
 // BenchmarkSampler 测量采样（Sampler）包装后的写入开销（放行全部）。
 func BenchmarkSampler(b *testing.B) {
 	enc := encoder.NewJSONEncoder(encoder.DefaultJSONEncoderConfig())

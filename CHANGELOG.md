@@ -2,6 +2,29 @@
 
 更新按 **更新日期 + 变更内容** 记录；版本号遵循语义化版本（SemVer）。
 
+## v1.1.0 — 2026-09-12
+
+新增多输出能力与按级别分流，并对多输出热路径做了零分配优化。
+
+新增功能：
+
+- **多输出 `Config.Outputs []Output`**：单个 logger 扇出到多个独立输出，每个输出拥有各自的编码（`Encoding` / `TemplateConfig`）、滚动文件（`Rolling`）或路径（`OutputPaths`）。`Outputs` 非空时优先生效，覆盖单输出字段。
+- **按级别分流到不同文件**：每个 `Output` 支持 `Levels`（白名单）、`ExcludeLevels`（黑名单）、`Level`（最低级别）三类路由，且先经过全局 `Config.Level` 闸门。典型场景：
+  - ERROR / WARN 单独写错误文件：`Levels: ["error","warn"]`；
+  - 上线只输出 ERROR / WARN：只配置该 Output（不配置 INFO / DEBUG / TRACE 的 Output）即可；
+  - 丢弃某些级别：`ExcludeLevels: ["info","debug","trace"]`。
+  - 约定：`trace` 不在 zap 级别阶梯内，解析时映射为 `DebugLevel`。
+- **每文件不同格式**：每个 `Output` 用各自 `Encoding` / `TemplateConfig`；`^` 分隔的自定义埋点模板示例：`TemplateConfig{Separator:"^", Template:"log_level^date^dataType^operatorId^serviceId^useTime^result"}`，自定义字段名走动态查找（调用侧 `sllogger.String("字段名", ...)` 注入）。
+- **示例 `example/multitype`**：演示 feign（JSON + ERROR/WARN 分流）与 mgmonitor（`^` 模板）两类日志，`-mode erroronly` 演示只输出 ERROR/WARN；`make example-multitype` 构建。
+
+性能优化：
+
+- **多输出级别路由零分配**：原先每条日志都会对每个带 `Levels`/`ExcludeLevels` 的 Output 现场 `make(map)` 解析级别，压测中三输出场景每写一条分配约 26 次 map（57 allocs/op）。改为在 `Build` 时预编译路由（`outputLevelEnabler`，持有全局 `AtomicLevel` + 预解析的 `allow`/`deny` map + 最低级别），热路径 `Enabled` 仅做 map 查询，零分配（三输出场景 57 → 31 allocs/op，ns/op 降约 15%）。单输出（向后兼容）路径未触碰，`Level` 判断方式不变。
+
+修复：
+
+- **按小时命名文件清理/续写失效**：`writer/naming.go` 的 `parseFileName` 原按 `.` 切分并假定日期为单段，导致 `DateLayout="2006-01-02.15"`（生成 `2026-09-12.01`）解析失败，清理扫描与启动续写完全识别不了按小时文件，实际永不清理。改为按 `DateLayout` 逐前缀 `time.Parse` 定位日期边界（新增 `writer/hourly_test.go` 含跨类型隔离清理断言）。注：之前的 calllog 示例用连字符布局 `2006-01-02-15`（`2026-09-11-15`，无点）未暴露此问题。
+
 ## v1.0.0 — 2026-09-12
 
 首个公开发布版本，已作为 Go 公共模块 `github.com/maxhaosl/sllogger` 发布（可被 `go get` 直接引用）。

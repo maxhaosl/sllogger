@@ -51,6 +51,13 @@ func (c *mockClock) Advance(d time.Duration) {
 	c.mu.Unlock()
 }
 
+// Set moves the clock to an absolute time (used by hourly rotation tests).
+func (c *mockClock) Set(t time.Time) {
+	c.mu.Lock()
+	c.t = t
+	c.mu.Unlock()
+}
+
 var baseTime = time.Date(2026, 9, 3, 10, 0, 0, 0, time.Local)
 
 func testConfig(t *testing.T) (*Config, *mockClock) {
