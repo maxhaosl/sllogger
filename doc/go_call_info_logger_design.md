@@ -7,6 +7,28 @@
 
 ---
 
+## 0. 安装
+
+本库已发布为 Go 公共模块，可直接通过 `go get` 引入：
+
+```bash
+go get github.com/maxhaosl/sllogger@v1.0.0
+```
+
+导入根包与子包（module 路径已重命名为完整路径）：
+
+```go
+import (
+    "github.com/maxhaosl/sllogger"        // 根包，Go 包名仍为 sllogger
+    "github.com/maxhaosl/sllogger/encoder"
+    "github.com/maxhaosl/sllogger/writer"
+    "github.com/maxhaosl/sllogger/slcore"
+)
+```
+
+> 注意：module 路径是 `github.com/maxhaosl/sllogger`，但每个子包的 **Go 包名仍叫 `sllogger`**（例如 `sllogger.NewCallInfoConfig`、`sllogger.FieldMobile`）。
+> 因此代码里以 `sllogger.` 作为标识符前缀不变，只有 `import` 路径字符串需要写成完整路径。
+
 ## 1. 背景
 
 当前系统需要在 Go 微服务中实现统一的调用日志能力，日志需要满足既定格式和文件规范。
