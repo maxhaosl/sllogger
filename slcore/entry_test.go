@@ -94,7 +94,7 @@ func TestCheckedEntryWrite(t *testing.T) {
 	}
 	ce.Write(String("k", "v"))
 
-	writes, _ := ws.counts()
+	writes, _ := ws.Counts()
 	if writes != 1 {
 		t.Fatalf("writes = %d", writes)
 	}

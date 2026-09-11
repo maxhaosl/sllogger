@@ -26,29 +26,6 @@ import (
 	"sync"
 )
 
-// A WriteSyncer is an io.Writer that can also flush any buffered data. Note
-// that *os.File (and thus, os.Stderr and os.Stdout) implement WriteSyncer.
-type WriteSyncer interface {
-	io.Writer
-	Sync() error
-}
-
-// LevelWriteSyncer is an optional extension of WriteSyncer that receives the
-// log level along with the payload.
-//
-// It enables level-aware write policies, for example the design doc's rule
-// (#29) that ERROR entries block when the async queue is full while
-// INFO/CALL_INFO entries are dropped to protect the business.
-//
-// ioCore.Write uses this interface when available and falls back to plain
-// Write otherwise, so existing WriteSyncer implementations keep working
-// unchanged.
-type LevelWriteSyncer interface {
-	WriteSyncer
-	// WriteLevel writes p, which was encoded from an entry at the given level.
-	WriteLevel(lvl Level, p []byte) (int, error)
-}
-
 // AddSync converts an io.Writer to a WriteSyncer. It attempts to be
 // intelligent: if the concrete type of the io.Writer implements WriteSyncer,
 // we'll use the existing Sync method. If it doesn't, we'll add a no-op Sync.

@@ -39,8 +39,8 @@ import (
 	"strings"
 	"time"
 
-	"sllogger/buffer"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/buffer"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // Common field names used by the preset templates.

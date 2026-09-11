@@ -171,6 +171,66 @@ func TestParseFileName(t *testing.T) {
 	}
 }
 
+func TestRenderAppPlaceholder(t *testing.T) {
+	cfg := (&Config{
+		Dir:                "/data/logs",
+		BaseName:           "LOG_CALL_INFO",
+		ServiceName:        "playurl",
+		ServicePort:        8080,
+		DateLayout:         "2006-01-02-15",
+		NamePattern:        "{base}.{date}.{app}.log",
+		RotatedNamePattern: "{base}.{date}.{seq}.{app}.log",
+	}).withDefaults()
+	n := newNamer(cfg)
+
+	if got, want := n.FileName(baseTime, 0), "LOG_CALL_INFO.2026-09-03-10.playurl.log"; got != want {
+		t.Fatalf("FileName = %q, want %q", got, want)
+	}
+	if got, want := n.FileName(baseTime, 1), "LOG_CALL_INFO.2026-09-03-10.01.playurl.log"; got != want {
+		t.Fatalf("FileName(seq=1) = %q, want %q", got, want)
+	}
+}
+
+func TestParseFileNameAppAnchor(t *testing.T) {
+	cfg := (&Config{
+		Dir:         "/data/logs",
+		BaseName:    "LOG_CALL_INFO",
+		ServiceName: "playurl",
+		ServicePort: 8080,
+		DateLayout:  "2006-01-02-15",
+	}).withDefaults()
+	n := newNamer(cfg)
+
+	tests := []struct {
+		name    string
+		wantSeq int
+		wantOK  bool
+	}{
+		// {app} pattern: seq sits before the app anchor.
+		{"LOG_CALL_INFO.2026-09-03-10.playurl.log", 0, true},
+		{"LOG_CALL_INFO.2026-09-03-10.01.playurl.log", 1, true},
+		{"LOG_CALL_INFO.2026-09-03-10.99.playurl.log", 99, true},
+		// {service} pattern still parses (same time layout).
+		{"LOG_CALL_INFO.2026-09-03-10.playurl8080.log", 0, true},
+		{"LOG_CALL_INFO.2026-09-03-10.playurl8080.01.log", 1, true},
+		// Wrong anchor is rejected.
+		{"LOG_CALL_INFO.2026-09-03-10.other.log", 0, false},
+	}
+	for _, tt := range tests {
+		pf, ok := n.parseFileName(tt.name, nil)
+		if ok != tt.wantOK {
+			t.Errorf("parseFileName(%q) ok = %v, want %v", tt.name, ok, tt.wantOK)
+			continue
+		}
+		if !ok {
+			continue
+		}
+		if pf.seq != tt.wantSeq {
+			t.Errorf("parseFileName(%q).seq = %d, want %d", tt.name, pf.seq, tt.wantSeq)
+		}
+	}
+}
+
 func TestLayoutGranularity(t *testing.T) {
 	tests := map[string]time.Duration{
 		"2006-01-02":                 24 * time.Hour,

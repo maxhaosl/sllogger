@@ -187,9 +187,3 @@ func (l *Level) Get() interface{} {
 func (l Level) Enabled(lvl Level) bool {
 	return lvl >= l
 }
-
-// LevelEnabler decides whether a given logging level is enabled when logging a
-// message.
-type LevelEnabler interface {
-	Enabled(Level) bool
-}

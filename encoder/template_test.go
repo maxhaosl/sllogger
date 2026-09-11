@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 var sampleTime = time.Date(2021, 11, 14, 20, 37, 34, 376000000, time.Local)

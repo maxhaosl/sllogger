@@ -24,7 +24,7 @@ import (
 	"context"
 	"sync"
 
-	"sllogger/encoder"
+	"github.com/maxhaosl/sllogger/encoder"
 )
 
 // CallInfo 描述一次 HTTP/RPC 调用信息（设计文档第 8 节）。业务只提交结构化
@@ -80,18 +80,6 @@ type RequestInfo struct {
 
 	// Level 日志级别，默认 INFO。
 	Level Level
-}
-
-// CallInfoLogger 是面向调用日志的接口（设计文档第 11 节）。带 ctx 的方法
-// 会自动从 context 提取 trace_id/span_id。
-type CallInfoLogger interface {
-	CallInfo(ctx context.Context, info CallInfo)
-	RequestInfo(ctx context.Context, info RequestInfo)
-	InfoCtx(ctx context.Context, msg string, fields ...Field)
-	WarnCtx(ctx context.Context, msg string, fields ...Field)
-	ErrorCtx(ctx context.Context, msg string, fields ...Field)
-	Sync() error
-	Close() error
 }
 
 // Field slices for the call-info paths are pooled: these are the hottest

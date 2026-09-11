@@ -48,8 +48,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sllogger"
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 var (

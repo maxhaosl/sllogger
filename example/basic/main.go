@@ -35,7 +35,7 @@ import (
 	"strings"
 	"time"
 
-	"sllogger"
+	"github.com/maxhaosl/sllogger"
 )
 
 func main() {

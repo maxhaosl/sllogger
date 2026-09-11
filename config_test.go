@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 type fixedClock struct{ t time.Time }

@@ -23,8 +23,6 @@ package slcore
 
 import (
 	"time"
-
-	"sllogger/buffer"
 )
 
 // DefaultLineEnding defines the default line ending when writing logs.
@@ -258,103 +256,4 @@ type EncoderConfig struct {
 	// Configures the field separator used by the template encoder. Defaults
 	// to "|".
 	ConsoleSeparator string `json:"consoleSeparator" yaml:"consoleSeparator"`
-}
-
-// ObjectEncoder is a strongly-typed, encoding-agnostic interface for adding a
-// map- or struct-like object to the logging context.
-type ObjectEncoder interface {
-	// Logging-specific marshalers.
-	AddArray(key string, marshaler ArrayMarshaler) error
-	AddObject(key string, marshaler ObjectMarshaler) error
-
-	// Built-in types.
-	AddBinary(key string, value []byte)     // for arbitrary bytes
-	AddByteString(key string, value []byte) // for UTF-8 encoded bytes
-	AddBool(key string, value bool)
-	AddComplex128(key string, value complex128)
-	AddComplex64(key string, value complex64)
-	AddDuration(key string, value time.Duration)
-	AddFloat64(key string, value float64)
-	AddFloat32(key string, value float32)
-	AddInt(key string, value int)
-	AddInt64(key string, value int64)
-	AddInt32(key string, value int32)
-	AddInt16(key string, value int16)
-	AddInt8(key string, value int8)
-	AddString(key, value string)
-	AddTime(key string, value time.Time)
-	AddUint(key string, value uint)
-	AddUint64(key string, value uint64)
-	AddUint32(key string, value uint32)
-	AddUint16(key string, value uint16)
-	AddUint8(key string, value uint8)
-	AddUintptr(key string, value uintptr)
-
-	// AddReflected uses reflection to serialize arbitrary objects, so it can be
-	// slow and allocation-heavy.
-	AddReflected(key string, value interface{}) error
-	// OpenNamespace opens an isolated namespace where all subsequent fields will
-	// be added.
-	OpenNamespace(key string)
-}
-
-// ArrayEncoder is a strongly-typed, encoding-agnostic interface for adding
-// array-like objects to the logging context.
-type ArrayEncoder interface {
-	// Built-in types.
-	PrimitiveArrayEncoder
-
-	// Time-related types.
-	AppendDuration(time.Duration)
-	AppendTime(time.Time)
-
-	// Logging-specific marshalers.
-	AppendArray(ArrayMarshaler) error
-	AppendObject(ObjectMarshaler) error
-
-	// AppendReflected uses reflection to serialize arbitrary objects, so it's
-	// slow and allocation-heavy.
-	AppendReflected(value interface{}) error
-}
-
-// PrimitiveArrayEncoder is the subset of the ArrayEncoder interface that deals
-// only in Go's built-in types. It's included only so that Duration- and
-// TimeEncoders cannot trigger infinite recursion.
-type PrimitiveArrayEncoder interface {
-	// Built-in types.
-	AppendBool(bool)
-	AppendByteString([]byte) // for UTF-8 encoded bytes
-	AppendComplex128(complex128)
-	AppendComplex64(complex64)
-	AppendFloat64(float64)
-	AppendFloat32(float32)
-	AppendInt(int)
-	AppendInt64(int64)
-	AppendInt32(int32)
-	AppendInt16(int16)
-	AppendInt8(int8)
-	AppendString(string)
-	AppendUint(uint)
-	AppendUint64(uint64)
-	AppendUint32(uint32)
-	AppendUint16(uint16)
-	AppendUint8(uint8)
-	AppendUintptr(uintptr)
-}
-
-// Encoder is a format-agnostic interface for all log entry marshalers. Since
-// log encoders don't need to support the same wide range of use cases as
-// general-purpose marshalers, it's possible to make them faster and
-// lower-allocation.
-type Encoder interface {
-	ObjectEncoder
-
-	// Clone copies the encoder, ensuring that adding fields to the copy doesn't
-	// affect the original.
-	Clone() Encoder
-
-	// EncodeEntry encodes an entry and fields, along with any accumulated
-	// context, into a byte buffer and returns it. Any fields that are empty,
-	// including fields on the `Entry` type, should be omitted.
-	EncodeEntry(Entry, []Field) (*buffer.Buffer, error)
 }

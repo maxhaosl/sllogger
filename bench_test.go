@@ -23,11 +23,12 @@ package sllogger
 import (
 	"context"
 	"io"
+	"os"
 	"testing"
 	"time"
 
-	"sllogger/encoder"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 var benchTime = time.Date(2021, 11, 14, 20, 37, 34, 376000000, time.Local)
@@ -204,4 +205,113 @@ func BenchmarkCallInfoAsync(b *testing.B) {
 	}
 	b.StopTimer()
 	log.Close()
+}
+
+// BenchmarkLoggerThroughput 测量日志写入吞吐（编码 + 分发，不含真实文件 IO）。
+// 通过 ReportMetric 直接报告每秒写入的日志条数（logs/sec）。
+func BenchmarkLoggerThroughput(b *testing.B) {
+	enc := encoder.NewJSONEncoder(encoder.DefaultJSONEncoderConfig())
+	core := slcore.NewCore(enc, slcore.AddSync(io.Discard), InfoLevel)
+	log := New(core)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("benchmark message", String("key", "value"), Int("n", i))
+	}
+	b.StopTimer()
+	b.ReportMetric(float64(b.N)/b.Elapsed().Seconds(), "logs/sec")
+}
+
+// BenchmarkLoggerThroughputToFile 测量写入真实文件的吞吐（含磁盘 IO）。
+func BenchmarkLoggerThroughputToFile(b *testing.B) {
+	f, err := os.CreateTemp("", "sllogger-throughput-*.log")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+	f.Close()
+
+	cfg := Config{
+		Encoding:      "json",
+		Level:         NewAtomicLevelAt(slcore.InfoLevel),
+		OutputPaths:   []string{f.Name()},
+		EncoderConfig: encoder.DefaultJSONEncoderConfig(),
+	}
+	log, err := cfg.Build()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("benchmark message", String("key", "value"), Int("n", i))
+	}
+	b.StopTimer()
+	b.ReportMetric(float64(b.N)/b.Elapsed().Seconds(), "logs/sec")
+	log.Close()
+}
+
+// BenchmarkTee 测量多路扇出（Tee）包装后的写入开销。
+func BenchmarkTee(b *testing.B) {
+	enc := encoder.NewJSONEncoder(encoder.DefaultJSONEncoderConfig())
+	w := slcore.AddSync(io.Discard)
+	core := slcore.NewTee(
+		slcore.NewCore(enc, w, InfoLevel),
+		slcore.NewCore(enc, w, InfoLevel),
+	)
+	log := New(core)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("msg", String("k", "v"))
+	}
+}
+
+// BenchmarkSampler 测量采样（Sampler）包装后的写入开销（放行全部）。
+func BenchmarkSampler(b *testing.B) {
+	enc := encoder.NewJSONEncoder(encoder.DefaultJSONEncoderConfig())
+	core := slcore.NewSampler(slcore.NewCore(enc, slcore.AddSync(io.Discard), InfoLevel), time.Second, 1, 1)
+	log := New(core)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("repeated message", String("k", "v"))
+	}
+}
+
+// BenchmarkIncreaseLevel 测量提升级别（IncreaseLevel）包装的开销（命中过滤路径）。
+func BenchmarkIncreaseLevel(b *testing.B) {
+	enc := encoder.NewJSONEncoder(encoder.DefaultJSONEncoderConfig())
+	core, err := slcore.NewIncreaseLevelCore(
+		slcore.NewCore(enc, slcore.AddSync(io.Discard), InfoLevel), WarnLevel)
+	if err != nil {
+		b.Fatal(err)
+	}
+	log := New(core)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("filtered", String("k", "v"))
+	}
+}
+
+// BenchmarkLazyWith 测量惰性 With（LazyWith）包装的开销。
+func BenchmarkLazyWith(b *testing.B) {
+	enc := encoder.NewJSONEncoder(encoder.DefaultJSONEncoderConfig())
+	core := slcore.NewLazyWith(
+		slcore.NewCore(enc, slcore.AddSync(io.Discard), InfoLevel),
+		[]Field{String("k", "v")},
+	)
+	log := New(core)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		log.Info("msg", String("k2", "v2"))
+	}
 }

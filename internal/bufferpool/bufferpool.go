@@ -24,7 +24,7 @@
 // Derived from go.uber.org/zap/internal/bufferpool.
 package bufferpool
 
-import "sllogger/buffer"
+import "github.com/maxhaosl/sllogger/buffer"
 
 var (
 	_pool = buffer.NewPool()

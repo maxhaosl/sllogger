@@ -20,7 +20,7 @@
 
 package sllogger
 
-import "sllogger/slcore"
+import "github.com/maxhaosl/sllogger/slcore"
 
 // Clock is an alias for slcore.Clock. Provide this alias to keep the API
 // surface familiar.

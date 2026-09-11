@@ -35,10 +35,16 @@ import (
 //	NamePattern        = "{base}.{date}.{service}.log"          第一个文件
 //	RotatedNamePattern = "{base}.{date}.{service}.{seq}.log"    滚动文件
 //
+// 支持的占位符：{base} {date} {service} {app} {seq} {pid}
+//
+//   - {service} 渲染为 "<ServiceName><ServicePort>"，如 playurl8080
+//   - {app}     仅渲染 ServiceName（不含端口），如 playurl
+//
 // 渲染示例：
 //
 //	LOG_CALL_INFO.2026-09-03.playurl8080.log
 //	LOG_CALL_INFO.2026-09-03.playurl8080.01.log
+//	LOG_CALL_INFO.2026-09-03-10.playurl.log          （{app}，按小时）
 type Namer struct {
 	cfg     *Config
 	service string
@@ -185,6 +191,11 @@ func (n *Namer) render(pattern string, t time.Time, seq int) string {
 			sb.WriteString(n.dateKey(t))
 		case "service":
 			sb.WriteString(n.service)
+		case "app":
+			// {app} is the bare application name, without the port. It lets
+			// the file name carry just the AppName (e.g. playurl) instead of
+			// the "<name><port>" form rendered by {service}.
+			sb.WriteString(n.cfg.ServiceName)
 		case "seq":
 			sb.WriteString(seqName(seq))
 		case "pid":
@@ -219,6 +230,19 @@ func seqName(seq int) string {
 	return s
 }
 
+// trailingSeq reports whether the last segment is a positive in-day sequence
+// number. At least two segments are required so that a purely numeric date
+// segment (e.g. DateLayout "20060102") is never mistaken for a sequence.
+func trailingSeq(segments []string) (int, bool) {
+	if len(segments) < 2 {
+		return 0, false
+	}
+	if seq, err := strconv.Atoi(segments[len(segments)-1]); err == nil && seq > 0 {
+		return seq, true
+	}
+	return 0, false
+}
+
 // parsedFile is the result of parsing a managed log file name.
 type parsedFile struct {
 	path  string
@@ -230,11 +254,13 @@ type parsedFile struct {
 
 // parseFileName parses a file name that follows this writer's naming rules:
 //
-//	{base}.{date}[.{service}][.{seq}].log
+//	{base}.{date}[.{service}|.{app}][.{seq}].log
 //
 // It tolerates custom NamePattern/RotatedNamePattern as long as base, date,
-// service and seq are separate dot-separated segments. The returned seq is 0
-// for the unnumbered file.
+// service/app and seq are separate dot-separated segments. When ServiceName is
+// set, both "<ServiceName><ServicePort>" ({service}) and "<ServiceName>"
+// ({app}) are accepted as the anchor segment, so either naming pattern can be
+// resumed and cleaned up. The returned seq is 0 for the unnumbered file.
 func (n *Namer) parseFileName(name string, fi os.FileInfo) (parsedFile, bool) {
 	var pf parsedFile
 	if !strings.HasPrefix(name, n.cfg.BaseName+".") || !strings.HasSuffix(name, ".log") {
@@ -247,20 +273,31 @@ func (n *Namer) parseFileName(name string, fi os.FileInfo) (parsedFile, bool) {
 
 	segments := strings.Split(middle, ".")
 
-	// Optional trailing seq.
-	if len(segments) >= 2 {
-		if seq, err := strconv.Atoi(segments[len(segments)-1]); err == nil && seq > 0 {
-			pf.seq = seq
-			segments = segments[:len(segments)-1]
-		}
+	// Optional trailing seq, for patterns with seq last
+	// (...{base}.{date}.{service}.{seq}.log).
+	if seq, ok := trailingSeq(segments); ok {
+		pf.seq = seq
+		segments = segments[:len(segments)-1]
 	}
 
-	// Optional service anchor.
-	if n.service != "" {
-		if len(segments) < 2 || segments[len(segments)-1] != n.service {
+	// Optional service/app anchor. Both the "<name><port>" form ({service})
+	// and the bare "<name>" form ({app}) are accepted.
+	if n.service != "" || n.cfg.ServiceName != "" {
+		if len(segments) < 2 {
+			return pf, false
+		}
+		last := segments[len(segments)-1]
+		if last != n.service && last != n.cfg.ServiceName {
 			return pf, false
 		}
 		segments = segments[:len(segments)-1]
+
+		// Patterns with seq before the anchor
+		// (...{base}.{date}.{seq}.{app}.log) leave seq trailing now.
+		if seq, ok := trailingSeq(segments); ok {
+			pf.seq = seq
+			segments = segments[:len(segments)-1]
+		}
 	}
 
 	if len(segments) != 1 {

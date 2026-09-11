@@ -31,8 +31,8 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/encoder"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 func testLogger(t *testing.T) (*Logger, *slcoreWriteRecorder) {

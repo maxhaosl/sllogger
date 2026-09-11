@@ -25,8 +25,8 @@ import (
 	"strings"
 	"testing"
 
-	"sllogger/encoder"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // disabledCallInfoLogger 返回一个级别为 ErrorLevel 的 CALL_INFO 日志器，

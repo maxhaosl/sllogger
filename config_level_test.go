@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger/slcore"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 // TestLevelAwareQueueEndToEnd 端到端验证设计文档 #29 的分级策略：

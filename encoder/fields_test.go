@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/buffer"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/buffer"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 func TestEscapeField(t *testing.T) {

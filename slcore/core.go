@@ -21,27 +21,6 @@
 // Derived from go.uber.org/zap/zapcore/core.go.
 package slcore
 
-// Core is a minimal, fast logger interface. It's designed for library authors
-// to wrap in a more user-friendly API.
-type Core interface {
-	LevelEnabler
-
-	// With adds structured context to the Core.
-	With([]Field) Core
-	// Check determines whether the supplied Entry should be logged (using the
-	// embedded LevelEnabler and possibly some extra logic). If the entry
-	// should be logged, the Core adds itself to the CheckedEntry and returns
-	// the result.
-	//
-	// Callers must use Check before calling Write.
-	Check(Entry, *CheckedEntry) *CheckedEntry
-	// Write serializes the Entry and any Fields supplied at the log site and
-	// writes them to their destination.
-	Write(Entry, []Field) error
-	// Sync flushes buffered logs (if any).
-	Sync() error
-}
-
 type nopCore struct{}
 
 // NewNopCore returns a no-op Core.

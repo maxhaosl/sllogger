@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 func TestAtomicLevel(t *testing.T) {

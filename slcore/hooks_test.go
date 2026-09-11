@@ -44,7 +44,7 @@ func TestRegisterHooks(t *testing.T) {
 	if calls != 1 {
 		t.Fatalf("hook called %d times, want 1", calls)
 	}
-	if writes, _ := ws.counts(); writes != 1 {
+	if writes, _ := ws.Counts(); writes != 1 {
 		t.Fatalf("writes = %d, want 1", writes)
 	}
 }
@@ -73,7 +73,7 @@ func TestRegisterHooksErrorsDoNotBlockWrite(t *testing.T) {
 	if ce := hooked.Check(Entry{Level: InfoLevel}, nil); ce != nil {
 		ce.Write()
 	}
-	if writes, _ := ws.counts(); writes != 1 {
+	if writes, _ := ws.Counts(); writes != 1 {
 		t.Fatalf("writes = %d, want the entry to be written despite the hook error", writes)
 	}
 }

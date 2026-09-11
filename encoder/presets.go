@@ -20,7 +20,7 @@
 
 package encoder
 
-import "sllogger/slcore"
+import "github.com/maxhaosl/sllogger/slcore"
 
 // Preset templates from doc/go_call_info_logger_design.md:
 //

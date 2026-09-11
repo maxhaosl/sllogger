@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 var jsonTime = time.Date(2026, 9, 3, 11, 22, 33, 0, time.Local)

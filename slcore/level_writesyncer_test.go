@@ -83,7 +83,7 @@ func TestPlainWriteSyncerFallback(t *testing.T) {
 	if err := core.Write(Entry{Level: ErrorLevel}, nil); err != nil {
 		t.Fatal(err)
 	}
-	writes, _ := sink.counts()
+	writes, _ := sink.Counts()
 	if writes != 1 {
 		t.Fatalf("writes = %d, want 1", writes)
 	}

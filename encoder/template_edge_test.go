@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/buffer"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/buffer"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // bufferPoolForBench is shared by the encoder benchmarks.

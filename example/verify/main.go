@@ -38,9 +38,9 @@ import (
 	"sync"
 	"time"
 
-	"sllogger"
-	"sllogger/encoder"
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 var (

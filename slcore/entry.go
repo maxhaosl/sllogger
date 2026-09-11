@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"sllogger/internal/bufferpool"
-	"sllogger/internal/exit"
-	"sllogger/internal/pool"
+	"github.com/maxhaosl/sllogger/internal/bufferpool"
+	"github.com/maxhaosl/sllogger/internal/exit"
+	"github.com/maxhaosl/sllogger/internal/pool"
 )
 
 var _cePool = pool.New(func() *CheckedEntry {
@@ -135,14 +135,6 @@ type Entry struct {
 	Message    string
 	Caller     EntryCaller
 	Stack      string
-}
-
-// CheckWriteHook is a custom action that may be executed after an entry is
-// written.
-type CheckWriteHook interface {
-	// OnWrite is invoked with the CheckedEntry that was written and a list
-	// of fields added with that entry.
-	OnWrite(*CheckedEntry, []Field)
 }
 
 // CheckWriteAction indicates what action to take after a log entry is

@@ -33,7 +33,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 // 压测默认参数；用 -short 跳过，或用环境变量覆盖。

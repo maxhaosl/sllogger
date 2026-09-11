@@ -71,11 +71,11 @@ func TestIOCoreWith(t *testing.T) {
 	if child == core {
 		t.Fatal("With must return a new core")
 	}
-	if enc.withN == 0 {
+	if enc.WithN == 0 {
 		t.Fatal("With did not forward fields to the encoder")
 	}
 	// The parent must not be affected.
-	if got := core.(*ioCore).enc.(*stubEncoder).withN; got != enc.withN {
+	if got := core.(*ioCore).enc.(*stubEncoder).WithN; got != enc.WithN {
 		t.Log("encoder is shared; context isolation is the encoder's responsibility")
 	}
 }
@@ -121,7 +121,7 @@ func TestIOCoreSyncsOnFatal(t *testing.T) {
 	if err := core.Write(Entry{Level: FatalLevel}, nil); err != nil {
 		t.Fatal(err)
 	}
-	_, syncs := ws.counts()
+	_, syncs := ws.Counts()
 	if syncs != 1 {
 		t.Fatalf("syncs = %d, want 1 for fatal entries", syncs)
 	}
@@ -130,7 +130,7 @@ func TestIOCoreSyncsOnFatal(t *testing.T) {
 	ws2 := &countingWriteSyncer{}
 	core2 := NewCore(newStubEncoder("x"), ws2, DebugLevel)
 	_ = core2.Write(Entry{Level: InfoLevel}, nil)
-	if _, syncs := ws2.counts(); syncs != 0 {
+	if _, syncs := ws2.Counts(); syncs != 0 {
 		t.Fatalf("syncs = %d, want 0 for info entries", syncs)
 	}
 }
@@ -141,7 +141,7 @@ func TestIOCoreSync(t *testing.T) {
 	if err := core.Sync(); err != nil {
 		t.Fatal(err)
 	}
-	if _, syncs := ws.counts(); syncs != 1 {
+	if _, syncs := ws.Counts(); syncs != 1 {
 		t.Fatalf("syncs = %d", syncs)
 	}
 }

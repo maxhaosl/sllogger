@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestJSONEncoderWithAllTypes 覆盖 JSONEncoder 自身的 ObjectEncoder 方法，

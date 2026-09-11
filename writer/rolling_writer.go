@@ -28,7 +28,7 @@ import (
 )
 
 // ErrClosed is returned when writing to a closed writer.
-var ErrClosed = errors.New("sllogger/writer: writer is closed")
+var ErrClosed = errors.New("github.com/maxhaosl/sllogger/writer: writer is closed")
 
 // RollingWriter writes logs to local files and rotates them by date (per
 // DateLayout), by configured interval (e.g. hourly) and by size.
@@ -63,10 +63,10 @@ type RollingWriter struct {
 func NewRollingWriter(cfg *Config) (*RollingWriter, error) {
 	cfg = cfg.withDefaults()
 	if cfg.Dir == "" {
-		return nil, errors.New("sllogger/writer: Dir is required")
+		return nil, errors.New("github.com/maxhaosl/sllogger/writer: Dir is required")
 	}
 	if cfg.BaseName == "" {
-		return nil, errors.New("sllogger/writer: BaseName is required")
+		return nil, errors.New("github.com/maxhaosl/sllogger/writer: BaseName is required")
 	}
 	if err := os.MkdirAll(cfg.Dir, 0o755); err != nil {
 		return nil, err

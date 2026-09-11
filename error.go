@@ -22,7 +22,7 @@
 package sllogger
 
 import (
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // Error is shorthand for the common idiom NamedError("error", err).
@@ -37,4 +37,28 @@ func NamedError(key string, err error) Field {
 		return Skip()
 	}
 	return Field{Key: key, Type: slcore.ErrorType, Interface: err}
+}
+
+type errArray []error
+
+func (errs errArray) MarshalLogArray(arr slcore.ArrayEncoder) error {
+	for i := range errs {
+		if errs[i] == nil {
+			continue
+		}
+		elem := &errArrayElem{error: errs[i]}
+		if err := arr.AppendObject(elem); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type errArrayElem struct {
+	error
+}
+
+func (e *errArrayElem) MarshalLogObject(enc slcore.ObjectEncoder) error {
+	Error(e.error).AddTo(enc)
+	return nil
 }

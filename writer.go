@@ -26,7 +26,7 @@ import (
 	"io"
 	"os"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // Open is a high-level wrapper that takes a variadic number of paths, opens or
@@ -59,7 +59,14 @@ func Open(paths ...string) (slcore.WriteSyncer, func(), error) {
 		default:
 			f, ferr := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 			if ferr != nil {
-				err = fmt.Errorf("open file %q: %w", path, ferr)
+				// Fall back to the sink registry for registered URL schemes
+				// (e.g. "file:///tmp/a.log", or custom schemes from RegisterSink).
+				if sink, serr := _sinkRegistry.newSink(path); serr == nil {
+					ws = sink
+					closer = sink
+				} else {
+					err = fmt.Errorf("open file %q: %w", path, ferr)
+				}
 			} else {
 				ws = f
 				closer = f

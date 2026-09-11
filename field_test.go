@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 func TestFieldConstructors(t *testing.T) {

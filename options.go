@@ -22,13 +22,10 @@
 package sllogger
 
 import (
-	"sllogger/slcore"
-)
+	"fmt"
 
-// An Option configures a Logger.
-type Option interface {
-	apply(*Logger)
-}
+	"github.com/maxhaosl/sllogger/slcore"
+)
 
 // optionFunc wraps a func so it satisfies the Option interface.
 type optionFunc func(*Logger)
@@ -103,6 +100,23 @@ func AddCallerSkip(skip int) Option {
 func AddStacktrace(lvl slcore.LevelEnabler) Option {
 	return optionFunc(func(log *Logger) {
 		log.addStack = lvl
+	})
+}
+
+// IncreaseLevel increase the level of the logger. It has no effect if
+// the passed in level tries to decrease the level of the logger.
+func IncreaseLevel(lvl slcore.LevelEnabler) Option {
+	return optionFunc(func(log *Logger) {
+		core, err := slcore.NewIncreaseLevelCore(log.core, lvl)
+		if err != nil {
+			_, _ = fmt.Fprintf(
+				log.errorOutput,
+				"failed to IncreaseLevel: %v\n",
+				err,
+			)
+		} else {
+			log.core = core
+		}
 	})
 }
 

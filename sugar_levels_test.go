@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestSugarAllLevels 覆盖 SugaredLogger 的全部级别方法。

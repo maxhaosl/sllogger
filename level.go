@@ -24,7 +24,7 @@ package sllogger
 import (
 	"sync/atomic"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 const (

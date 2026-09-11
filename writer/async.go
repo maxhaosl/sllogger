@@ -26,7 +26,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // writeSyncCloser is the minimal interface AsyncWriter needs from its

@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // levelConfig 返回一个启用了分级策略（ERROR 阻塞）的配置。

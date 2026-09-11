@@ -9,11 +9,16 @@
 #   make stress     # 压力测试（较慢）
 #   make verify     # 功能自检（逐条验证 9 项需求）
 #   make check      # 端到端一致性校验：写入条数 vs 落盘条数
+#   make example-calllog  # 构建示例程序 -> build/bin/calllog
 #   make ci         # CI 全量流水线（本机复现 GitHub Actions）
 #   make clean      # 清理构建与覆盖率产物
 
 .PHONY: all fmt fmt-check build vet test race cover cover-html \
-        bench stress verify check profile ci clean help
+        bench stress verify check profile ci clean help \
+        example-calllog examples
+
+# 示例程序输出目录（可覆盖，例如 BIN_DIR=/tmp/bin）。
+BIN_DIR ?= build/bin
 
 # 可通过环境变量覆盖，例如：
 #   make check N=1000000 G=64
@@ -50,6 +55,7 @@ help:
 	@echo "  make stress    压力测试（较慢）"
 	@echo "  make verify    功能自检（9 项需求逐条验证）"
 	@echo "  make check     一致性校验：写入条数 vs 落盘条数"
+	@echo "  make example-calllog  构建示例程序 -> build/bin/calllog"
 	@echo "  make ci        CI 全量流水线"
 	@echo "  make clean     清理产物"
 	@echo ""
@@ -160,6 +166,22 @@ profile:
 	@go run ./example/bench -mode bench -n 200000 -g 64 -async \
 		-cpuprofile cpu.out -memprofile mem.out
 	@echo "查看：go tool pprof -top cpu.out"
+
+## 示例程序 #############################################################
+
+# 三类日志示例：LOG_CALL_INFO / LOG_COMM / LOG_CALL_ERR，输出到 build/logs。
+# 运行：./build/bin/calllog -app playurl -n 5 -fail-every 3
+example-calllog:
+	@echo ">> 构建示例 -> $(BIN_DIR)/calllog"
+	@mkdir -p $(BIN_DIR)
+	@go build -o $(BIN_DIR)/calllog ./example/calllog
+
+# 构建全部示例程序到 $(BIN_DIR)。
+examples: example-calllog
+	@mkdir -p $(BIN_DIR)
+	@go build -o $(BIN_DIR)/verify ./example/verify
+	@go build -o $(BIN_DIR)/bench ./example/bench
+	@echo ">> 已构建：calllog verify bench -> $(BIN_DIR)"
 
 ## CI ###################################################################
 

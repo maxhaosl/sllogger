@@ -29,20 +29,6 @@ import (
 	"time"
 )
 
-// ArrayMarshaler allows user-defined types to efficiently add themselves to the
-// logging context, and to selectively omit information which shouldn't be
-// included in logs.
-type ArrayMarshaler interface {
-	MarshalLogArray(ArrayEncoder) error
-}
-
-// ObjectMarshaler allows user-defined types to efficiently add themselves to the
-// logging context, and to selectively omit information which shouldn't be
-// included in logs.
-type ObjectMarshaler interface {
-	MarshalLogObject(ObjectEncoder) error
-}
-
 // LazyWith is not part of V1; reserved for future use.
 
 // A FieldType indicates which member of the Field union struct should be used

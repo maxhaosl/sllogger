@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestMapArrayEncoderPrimitives 覆盖 mapArrayEncoder 的全部 Append* 方法。

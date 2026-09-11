@@ -28,9 +28,9 @@ import (
 	"strings"
 	"time"
 
-	"sllogger/buffer"
-	"sllogger/internal/bufferpool"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/buffer"
+	"github.com/maxhaosl/sllogger/internal/bufferpool"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // Defaults for the template encoder.
@@ -115,7 +115,7 @@ type TemplateEncoder struct {
 func NewTemplateEncoder(cfg TemplateConfig) (*TemplateEncoder, error) {
 	normalized := cfg.withDefaults()
 	if strings.TrimSpace(normalized.Template) == "" {
-		return nil, errors.New("sllogger/encoder: template is empty")
+		return nil, errors.New("github.com/maxhaosl/sllogger/encoder: template is empty")
 	}
 	cfg = *normalized
 
@@ -125,7 +125,7 @@ func NewTemplateEncoder(cfg TemplateConfig) (*TemplateEncoder, error) {
 	for _, seg := range segs {
 		name := strings.TrimSpace(seg)
 		if name == "" {
-			return nil, fmt.Errorf("sllogger/encoder: template contains empty field: %q", cfg.Template)
+			return nil, fmt.Errorf("github.com/maxhaosl/sllogger/encoder: template contains empty field: %q", cfg.Template)
 		}
 		fields = append(fields, name)
 		appenders = append(appenders, makeAppender(cfg, name))

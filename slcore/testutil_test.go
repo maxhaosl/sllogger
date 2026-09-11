@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
-	"sllogger/buffer"
-	"sllogger/internal/bufferpool"
+	"github.com/maxhaosl/sllogger/buffer"
+	"github.com/maxhaosl/sllogger/internal/bufferpool"
 )
 
 // Field constructors for tests. The ergonomic constructors live in the root
@@ -48,6 +48,47 @@ func Bool(key string, val bool) Field {
 		i = 1
 	}
 	return Field{Key: key, Type: BoolType, Integer: i}
+}
+
+// countingWriteSyncer is a minimal WriteSyncer that records its writes and syncs.
+// It is kept local to the slcore test package because the tests inspect its
+// unexported state directly; a cross-package shared Sink would not expose those
+// fields (and would create an import cycle with slcore anyway).
+type countingWriteSyncer struct {
+	mu      sync.Mutex
+	buf     bytes.Buffer
+	writes  int
+	syncs   int
+	writeEr error
+}
+
+func (w *countingWriteSyncer) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.writeEr != nil {
+		return 0, w.writeEr
+	}
+	w.writes++
+	return w.buf.Write(p)
+}
+
+func (w *countingWriteSyncer) Sync() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.syncs++
+	return nil
+}
+
+func (w *countingWriteSyncer) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.String()
+}
+
+func (w *countingWriteSyncer) Counts() (writes, syncs int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.writes, w.syncs
 }
 
 // mapObjectEncoder is a minimal ObjectEncoder used to assert what fields
@@ -143,44 +184,6 @@ func (m mapArrayEncoder) AppendReflected(value interface{}) error {
 	return nil
 }
 
-// countingWriteSyncer records writes for assertions.
-type countingWriteSyncer struct {
-	mu      sync.Mutex
-	buf     bytes.Buffer
-	writes  int
-	syncs   int
-	writeEr error
-}
-
-func (w *countingWriteSyncer) Write(p []byte) (int, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	if w.writeEr != nil {
-		return 0, w.writeEr
-	}
-	w.writes++
-	return w.buf.Write(p)
-}
-
-func (w *countingWriteSyncer) Sync() error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.syncs++
-	return nil
-}
-
-func (w *countingWriteSyncer) String() string {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.buf.String()
-}
-
-func (w *countingWriteSyncer) counts() (writes, syncs int) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.writes, w.syncs
-}
-
 // stubEncoder is an Encoder that emits a fixed line and records calls.
 type stubEncoder struct {
 	mu       sync.Mutex
@@ -188,9 +191,9 @@ type stubEncoder struct {
 	out      string
 	encodeN  int
 	cloneN   int
+	WithN    int
 	fields   []Field
 	context  map[string]interface{}
-	withN    int
 	omitLine bool
 }
 
@@ -224,7 +227,7 @@ func (e *stubEncoder) Clone() Encoder {
 func (e *stubEncoder) AddString(key, val string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.withN++
+	e.WithN++
 	e.context[key] = val
 }
 
@@ -259,7 +262,7 @@ func (e *stubEncoder) AddReflected(key string, v interface{}) error {
 }
 func (e *stubEncoder) OpenNamespace(key string) {}
 
-// failingJSON is used to exercise error propagation paths.
+// errStub is used to exercise error propagation paths.
 var errStub = errors.New("stub failure")
 
 func mustJSON(v interface{}) string {

@@ -40,3 +40,6 @@ cpu.out
 mem.out
 coverage.html
 coverage.out
+
+# 构建与运行产物（示例二进制 build/bin、示例日志 build/logs）
+build/

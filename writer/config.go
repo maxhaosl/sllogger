@@ -27,18 +27,27 @@
 //	{Dir}/{BaseName}.{date}.{service}.log          当日第一个文件
 //	{Dir}/{BaseName}.{date}.{service}.{seq}.log    滚动后的文件（seq 从 01 开始）
 //
+// 占位符：{base} {date} {service} {app} {seq} {pid}。其中 {service} 为
+// "<ServiceName><ServicePort>"，{app} 为不带端口的 ServiceName。
+//
 // 例如：
 //
 //	/data/logs/
 //	    LOG_CALL_INFO.2026-09-03.playurl8080.log
 //	    LOG_CALL_INFO.2026-09-03.playurl8080.01.log
 //	    LOG_CALL_INFO.2026-09-03.playurl8080.02.log
+//
+// 也可按小时 + AppName 命名（见 example/calllog）：
+//
+//	{Dir}/LOG_CALL_INFO.{yyyy-MM-dd-HH}.{seq}.{app}.log
+//	    build/logs/LOG_CALL_INFO.2026-09-11-15.playurl.log
+//	    build/logs/LOG_CALL_INFO.2026-09-11-15.01.playurl.log
 package writer
 
 import (
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // Default configuration values.
@@ -83,7 +92,9 @@ type Config struct {
 	BaseName string
 
 	// NamePattern is the file name pattern for the first file of a period.
-	// Supported placeholders: {base} {date} {service} {seq} {pid}.
+	// Supported placeholders: {base} {date} {service} {app} {seq} {pid}.
+	// {service} renders "<ServiceName><ServicePort>"; {app} renders
+	// "<ServiceName>" only (no port).
 	NamePattern string
 
 	// RotatedNamePattern is the file name pattern used after rotation, when

@@ -24,7 +24,7 @@ import (
 	"math"
 	"testing"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestAppendFieldValueFloat 覆盖 appendFieldValue 中 Float64 / Float32

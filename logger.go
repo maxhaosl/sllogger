@@ -28,8 +28,9 @@ import (
 	"strings"
 	"sync"
 
-	"sllogger/internal/bufferpool"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/internal/bufferpool"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // A Logger provides fast, leveled, structured logging. All methods are safe
@@ -90,6 +91,23 @@ func NewNop() *Logger {
 		clock:       slcore.DefaultClock,
 		closeMu:     &sync.Once{},
 	}
+}
+
+// NewExample builds a Logger that's designed for use in sllogger's testable
+// examples. It writes DebugLevel and above logs to standard out as JSON, but
+// omits the timestamp and calling function to keep example output
+// short and deterministic.
+func NewExample(options ...Option) *Logger {
+	encoderCfg := slcore.EncoderConfig{
+		MessageKey:     "msg",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		EncodeLevel:    slcore.LowercaseLevelEncoder,
+		EncodeTime:     slcore.ISO8601TimeEncoder,
+		EncodeDuration: slcore.StringDurationEncoder,
+	}
+	core := slcore.NewCore(encoder.NewJSONEncoder(encoderCfg), os.Stdout, DebugLevel)
+	return New(core).WithOptions(options...)
 }
 
 // Must is a helper that wraps a call to a function returning (*Logger, error)

@@ -24,9 +24,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"sllogger/buffer"
-	"sllogger/internal/bufferpool"
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/buffer"
+	"github.com/maxhaosl/sllogger/internal/bufferpool"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // JSONEncoder is a lightweight one-line JSON encoder implementing

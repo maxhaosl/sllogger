@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestTemplateEncoderObjectEncoderMethods 覆盖 TemplateEncoder 作为

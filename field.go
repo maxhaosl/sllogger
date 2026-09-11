@@ -26,7 +26,7 @@ import (
 	"math"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // Field is an alias for slcore.Field. Aliasing this type dramatically
@@ -177,63 +177,417 @@ func Object(key string, val slcore.ObjectMarshaler) Field {
 	return Field{Key: key, Type: slcore.ObjectMarshalerType, Interface: val}
 }
 
-// Any is a generic, lazy way to construct a field with the given key and
-// value. It falls back to Reflect for unknown types.
-func Any(key string, value interface{}) Field {
-	switch val := value.(type) {
-	case slcore.ObjectMarshaler:
-		return Object(key, val)
-	case slcore.ArrayMarshaler:
-		return Array(key, val)
-	case bool:
-		return Bool(key, val)
-	case []byte:
-		return Binary(key, val)
-	case complex128:
-		return Complex128(key, val)
-	case complex64:
-		return Complex64(key, val)
-	case float32:
-		return Float32(key, val)
-	case float64:
-		return Float64(key, val)
-	case int:
-		return Int(key, val)
-	case int8:
-		return Int8(key, val)
-	case int16:
-		return Int16(key, val)
-	case int32:
-		return Int32(key, val)
-	case int64:
-		return Int64(key, val)
-	case string:
-		return String(key, val)
-	case uint:
-		return Uint(key, val)
-	case uint8:
-		return Uint8(key, val)
-	case uint16:
-		return Uint16(key, val)
-	case uint32:
-		return Uint32(key, val)
-	case uint64:
-		return Uint64(key, val)
-	case uintptr:
-		return Uintptr(key, val)
-	// time.Time and time.Duration both implement fmt.Stringer, so they must
-	// be matched before it to keep their richer encodings.
-	case time.Time:
-		return Time(key, val)
-	case time.Duration:
-		return Duration(key, val)
-	case error:
-		return NamedError(key, val)
-	case fmt.Stringer:
-		return Stringer(key, val)
-	case nil:
-		return Reflect(key, nil)
-	default:
-		return Reflect(key, val)
+// nilField returns a field which will marshal explicitly as nil. See motivation
+// in https://github.com/uber-go/zap/issues/753 . If we ever make breaking
+// changes and add slcore.NilType and slcore.ObjectEncoder.AddNil, the
+// implementation here should be changed to reflect that.
+func nilField(key string) Field { return Reflect(key, nil) }
+
+// Boolp constructs a field that carries a *bool. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Boolp(key string, val *bool) Field {
+	if val == nil {
+		return nilField(key)
 	}
+	return Bool(key, *val)
+}
+
+// Complex128p constructs a field that carries a *complex128. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Complex128p(key string, val *complex128) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Complex128(key, *val)
+}
+
+// Complex64p constructs a field that carries a *complex64. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Complex64p(key string, val *complex64) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Complex64(key, *val)
+}
+
+// Float64p constructs a field that carries a *float64. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Float64p(key string, val *float64) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Float64(key, *val)
+}
+
+// Float32p constructs a field that carries a *float32. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Float32p(key string, val *float32) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Float32(key, *val)
+}
+
+// Intp constructs a field that carries a *int. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Intp(key string, val *int) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Int(key, *val)
+}
+
+// Int64p constructs a field that carries a *int64. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Int64p(key string, val *int64) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Int64(key, *val)
+}
+
+// Int32p constructs a field that carries a *int32. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Int32p(key string, val *int32) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Int32(key, *val)
+}
+
+// Int16p constructs a field that carries a *int16. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Int16p(key string, val *int16) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Int16(key, *val)
+}
+
+// Int8p constructs a field that carries a *int8. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Int8p(key string, val *int8) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Int8(key, *val)
+}
+
+// Stringp constructs a field that carries a *string. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Stringp(key string, val *string) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return String(key, *val)
+}
+
+// Uintp constructs a field that carries a *uint. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Uintp(key string, val *uint) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Uint(key, *val)
+}
+
+// Uint64p constructs a field that carries a *uint64. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Uint64p(key string, val *uint64) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Uint64(key, *val)
+}
+
+// Uint32p constructs a field that carries a *uint32. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Uint32p(key string, val *uint32) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Uint32(key, *val)
+}
+
+// Uint16p constructs a field that carries a *uint16. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Uint16p(key string, val *uint16) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Uint16(key, *val)
+}
+
+// Uint8p constructs a field that carries a *uint8. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Uint8p(key string, val *uint8) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Uint8(key, *val)
+}
+
+// Uintptrp constructs a field that carries a *uintptr. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Uintptrp(key string, val *uintptr) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Uintptr(key, *val)
+}
+
+// Timep constructs a field that carries a *time.Time. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Timep(key string, val *time.Time) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Time(key, *val)
+}
+
+// Durationp constructs a field that carries a *time.Duration. The returned Field will safely
+// and explicitly represent `nil` when appropriate.
+func Durationp(key string, val *time.Duration) Field {
+	if val == nil {
+		return nilField(key)
+	}
+	return Duration(key, *val)
+}
+
+// Stack constructs a field that stores a stacktrace of the current goroutine
+// under provided key. Keep in mind that taking a stacktrace is eager and
+// expensive (relatively speaking); this function both makes an allocation and
+// takes about two microseconds.
+func Stack(key string) Field {
+	return StackSkip(key, 1) // skip Stack
+}
+
+// StackSkip constructs a field similarly to Stack, but also skips the given
+// number of frames from the top of the stacktrace.
+func StackSkip(key string, skip int) Field {
+	// Returning the stacktrace as a string costs an allocation, but saves us
+	// from expanding the slcore.Field union struct to include a byte slice. Since
+	// taking a stacktrace is already so expensive (~10us), the extra allocation
+	// is okay.
+	return String(key, slcore.CaptureStack(skip+1)) // skip StackSkip
+}
+
+// Inline constructs a Field that is similar to Object, but it
+// will add the elements of the provided ObjectMarshaler to the
+// current namespace.
+func Inline(val slcore.ObjectMarshaler) Field {
+	return slcore.Field{
+		Type:      slcore.InlineMarshalerType,
+		Interface: val,
+	}
+}
+
+// Dict constructs a field containing the provided key-value pairs.
+// It acts similar to [Object], but with the fields specified as arguments.
+func Dict(key string, val ...Field) Field {
+	return dictField(key, val)
+}
+
+// We need a function with the signature (string, T) for zap.Any.
+func dictField(key string, val []Field) Field {
+	return Object(key, dictObject(val))
+}
+
+type dictObject []Field
+
+func (d dictObject) MarshalLogObject(enc slcore.ObjectEncoder) error {
+	for _, f := range d {
+		f.AddTo(enc)
+	}
+	return nil
+}
+
+// DictObject constructs a [slcore.ObjectMarshaler] with the given list of fields.
+// The resulting object marshaler can be used as input to [Object], [Objects], or
+// any other functions that expect an object marshaler.
+func DictObject(val ...Field) slcore.ObjectMarshaler {
+	return dictObject(val)
+}
+
+// We discovered an issue where zap.Any can cause a performance degradation
+// when used in new goroutines.
+//
+// This happens because the compiler assigns 4.8kb (one zap.Field per arm of
+// switch statement) of stack space for zap.Any when it takes the form:
+//
+//	switch v := v.(type) {
+//	case string:
+//		return String(key, v)
+//	case int:
+//		return Int(key, v)
+//		// ...
+//	default:
+//		return Reflect(key, v)
+//	}
+//
+// To avoid this, we use the type switch to assign a value to a single local variable
+// and then call a function on it.
+// The local variable is just a function reference so it doesn't allocate
+// when converted to an interface{}.
+//
+// A fair bit of experimentation went into this.
+// See also:
+//
+// - https://github.com/uber-go/zap/pull/1301
+// - https://github.com/uber-go/zap/pull/1303
+// - https://github.com/uber-go/zap/pull/1304
+// - https://github.com/uber-go/zap/pull/1305
+// - https://github.com/uber-go/zap/pull/1308
+//
+// See https://github.com/golang/go/issues/62077 for upstream issue.
+type anyFieldC[T any] func(string, T) Field
+
+func (f anyFieldC[T]) Any(key string, val any) Field {
+	v, _ := val.(T)
+	// val is guaranteed to be a T, except when it's nil.
+	return f(key, v)
+}
+
+// Any takes a key and an arbitrary value and chooses the best way to represent
+// them as a field, falling back to a reflection-based approach only if
+// necessary.
+//
+// Since byte/uint8 and rune/int32 are aliases, Any can't differentiate between
+// them. To minimize surprises, []byte values are treated as binary blobs, byte
+// values are treated as uint8, and runes are always treated as integers.
+func Any(key string, value interface{}) Field {
+	var c interface{ Any(string, any) Field }
+
+	switch value.(type) {
+	case slcore.ObjectMarshaler:
+		c = anyFieldC[slcore.ObjectMarshaler](Object)
+	case slcore.ArrayMarshaler:
+		c = anyFieldC[slcore.ArrayMarshaler](Array)
+	case []Field:
+		c = anyFieldC[[]Field](dictField)
+	case bool:
+		c = anyFieldC[bool](Bool)
+	case *bool:
+		c = anyFieldC[*bool](Boolp)
+	case []bool:
+		c = anyFieldC[[]bool](Bools)
+	case complex128:
+		c = anyFieldC[complex128](Complex128)
+	case *complex128:
+		c = anyFieldC[*complex128](Complex128p)
+	case []complex128:
+		c = anyFieldC[[]complex128](Complex128s)
+	case complex64:
+		c = anyFieldC[complex64](Complex64)
+	case *complex64:
+		c = anyFieldC[*complex64](Complex64p)
+	case []complex64:
+		c = anyFieldC[[]complex64](Complex64s)
+	case float64:
+		c = anyFieldC[float64](Float64)
+	case *float64:
+		c = anyFieldC[*float64](Float64p)
+	case []float64:
+		c = anyFieldC[[]float64](Float64s)
+	case float32:
+		c = anyFieldC[float32](Float32)
+	case *float32:
+		c = anyFieldC[*float32](Float32p)
+	case []float32:
+		c = anyFieldC[[]float32](Float32s)
+	case int:
+		c = anyFieldC[int](Int)
+	case *int:
+		c = anyFieldC[*int](Intp)
+	case []int:
+		c = anyFieldC[[]int](Ints)
+	case int64:
+		c = anyFieldC[int64](Int64)
+	case *int64:
+		c = anyFieldC[*int64](Int64p)
+	case []int64:
+		c = anyFieldC[[]int64](Int64s)
+	case int32:
+		c = anyFieldC[int32](Int32)
+	case *int32:
+		c = anyFieldC[*int32](Int32p)
+	case []int32:
+		c = anyFieldC[[]int32](Int32s)
+	case int16:
+		c = anyFieldC[int16](Int16)
+	case *int16:
+		c = anyFieldC[*int16](Int16p)
+	case []int16:
+		c = anyFieldC[[]int16](Int16s)
+	case int8:
+		c = anyFieldC[int8](Int8)
+	case *int8:
+		c = anyFieldC[*int8](Int8p)
+	case []int8:
+		c = anyFieldC[[]int8](Int8s)
+	case string:
+		c = anyFieldC[string](String)
+	case *string:
+		c = anyFieldC[*string](Stringp)
+	case []string:
+		c = anyFieldC[[]string](Strings)
+	case uint:
+		c = anyFieldC[uint](Uint)
+	case *uint:
+		c = anyFieldC[*uint](Uintp)
+	case []uint:
+		c = anyFieldC[[]uint](Uints)
+	case uint64:
+		c = anyFieldC[uint64](Uint64)
+	case *uint64:
+		c = anyFieldC[*uint64](Uint64p)
+	case []uint64:
+		c = anyFieldC[[]uint64](Uint64s)
+	case uint32:
+		c = anyFieldC[uint32](Uint32)
+	case *uint32:
+		c = anyFieldC[*uint32](Uint32p)
+	case []uint32:
+		c = anyFieldC[[]uint32](Uint32s)
+	case uint16:
+		c = anyFieldC[uint16](Uint16)
+	case *uint16:
+		c = anyFieldC[*uint16](Uint16p)
+	case []uint16:
+		c = anyFieldC[[]uint16](Uint16s)
+	case uint8:
+		c = anyFieldC[uint8](Uint8)
+	case *uint8:
+		c = anyFieldC[*uint8](Uint8p)
+	case []byte:
+		c = anyFieldC[[]byte](Binary)
+	case uintptr:
+		c = anyFieldC[uintptr](Uintptr)
+	case *uintptr:
+		c = anyFieldC[*uintptr](Uintptrp)
+	case []uintptr:
+		c = anyFieldC[[]uintptr](Uintptrs)
+	case time.Time:
+		c = anyFieldC[time.Time](Time)
+	case *time.Time:
+		c = anyFieldC[*time.Time](Timep)
+	case []time.Time:
+		c = anyFieldC[[]time.Time](Times)
+	case time.Duration:
+		c = anyFieldC[time.Duration](Duration)
+	case *time.Duration:
+		c = anyFieldC[*time.Duration](Durationp)
+	case []time.Duration:
+		c = anyFieldC[[]time.Duration](Durations)
+	case error:
+		c = anyFieldC[error](NamedError)
+	case []error:
+		c = anyFieldC[[]error](Errors)
+	case fmt.Stringer:
+		c = anyFieldC[fmt.Stringer](Stringer)
+	default:
+		c = anyFieldC[any](Reflect)
+	}
+
+	return c.Any(key, value)
 }

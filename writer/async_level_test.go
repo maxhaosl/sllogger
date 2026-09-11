@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestWriteLevelPolicy 覆盖设计文档 #29 的分级队列满策略：

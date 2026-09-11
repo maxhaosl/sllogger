@@ -50,12 +50,6 @@ func TraceFromContext(ctx context.Context) (traceID, spanID string) {
 	return "", ""
 }
 
-// TraceExtractor pluggably extracts trace information from a context, e.g.
-// from OpenTelemetry span contexts.
-type TraceExtractor interface {
-	Extract(ctx context.Context) (traceID, spanID string)
-}
-
 // traceExtractorFunc adapts a function to the TraceExtractor interface.
 type traceExtractorFunc func(ctx context.Context) (string, string)
 

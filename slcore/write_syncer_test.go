@@ -116,10 +116,10 @@ func TestNewMultiWriteSyncerWrites(t *testing.T) {
 	if err := ws.Sync(); err != nil {
 		t.Fatal(err)
 	}
-	if _, syncs := a.counts(); syncs != 1 {
+	if _, syncs := a.Counts(); syncs != 1 {
 		t.Fatal("Sync not propagated to the first syncer")
 	}
-	if _, syncs := b.counts(); syncs != 1 {
+	if _, syncs := b.Counts(); syncs != 1 {
 		t.Fatal("Sync not propagated to the second syncer")
 	}
 }

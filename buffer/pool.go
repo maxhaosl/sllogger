@@ -21,7 +21,7 @@
 package buffer
 
 import (
-	"sllogger/internal/pool"
+	"github.com/maxhaosl/sllogger/internal/pool"
 )
 
 // A Pool is a type-safe wrapper around a sync.Pool.

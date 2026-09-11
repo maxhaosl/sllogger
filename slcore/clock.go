@@ -27,18 +27,6 @@ import "time"
 // time. This clock uses the system clock for all operations.
 var DefaultClock = systemClock{}
 
-// Clock is a source of time for logged entries. It is also used by
-// writer.RollingWriter so that time-based rotation can be unit tested with a
-// mock clock.
-type Clock interface {
-	// Now returns the current local time.
-	Now() time.Time
-
-	// NewTicker returns *time.Ticker that holds a channel
-	// that delivers "ticks" of a clock.
-	NewTicker(time.Duration) *time.Ticker
-}
-
 // systemClock implements default Clock that uses system time.
 type systemClock struct{}
 

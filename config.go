@@ -28,9 +28,9 @@ import (
 	"sort"
 	"strings"
 
-	"sllogger/encoder"
-	"sllogger/slcore"
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/slcore"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 // concurrentWriteSyncer marks a WriteSyncer that is already safe for
@@ -133,6 +133,52 @@ func NewDevelopmentConfig() Config {
 		Encoding:         "json",
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
+	}
+}
+
+// NewProductionEncoderConfig returns an opinionated EncoderConfig for
+// production environments. Messages encoded with this configuration will use
+// Zap's JSON encoder, with keys "ts", "level", "msg", etc.
+//
+// For example, use the following to change the time encoding format:
+//
+//	cfg := sllogger.NewProductionEncoderConfig()
+//	cfg.EncodeTime = slcore.ISO8601TimeEncoder
+func NewProductionEncoderConfig() slcore.EncoderConfig {
+	return slcore.EncoderConfig{
+		TimeKey:        "ts",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    slcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     slcore.DefaultLineEnding,
+		EncodeLevel:    slcore.LowercaseLevelEncoder,
+		EncodeTime:     slcore.EpochTimeEncoder,
+		EncodeDuration: slcore.SecondsDurationEncoder,
+		EncodeCaller:   slcore.ShortCallerEncoder,
+	}
+}
+
+// NewDevelopmentEncoderConfig returns an opinionated EncoderConfig for
+// development environments. Messages encoded with this configuration will use
+// Zap's console encoder intended to print human-readable output.
+func NewDevelopmentEncoderConfig() slcore.EncoderConfig {
+	return slcore.EncoderConfig{
+		// Keys can be anything except the empty string.
+		TimeKey:        "T",
+		LevelKey:       "L",
+		NameKey:        "N",
+		CallerKey:      "C",
+		FunctionKey:    slcore.OmitKey,
+		MessageKey:     "M",
+		StacktraceKey:  "S",
+		LineEnding:     slcore.DefaultLineEnding,
+		EncodeLevel:    slcore.CapitalLevelEncoder,
+		EncodeTime:     slcore.ISO8601TimeEncoder,
+		EncodeDuration: slcore.StringDurationEncoder,
+		EncodeCaller:   slcore.ShortCallerEncoder,
 	}
 }
 
@@ -306,6 +352,9 @@ func (cfg Config) buildEncoder() (slcore.Encoder, error) {
 	case "requestinfo":
 		return encoder.NewRequestInfoEncoder(cfg.templateConfigWithService())
 	default:
+		if ctor, ok := _encoderNameToConstructor[strings.ToLower(cfg.Encoding)]; ok {
+			return ctor(cfg.EncoderConfig)
+		}
 		return nil, fmt.Errorf("sllogger: unrecognized encoding: %q", cfg.Encoding)
 	}
 }

@@ -24,7 +24,7 @@ package sllogger
 import (
 	"fmt"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 const (

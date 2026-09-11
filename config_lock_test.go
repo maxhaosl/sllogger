@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // safeSink 声明自己线程安全（模拟 AsyncWriter / RollingWriter）。

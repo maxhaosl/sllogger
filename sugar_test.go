@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 func sugaredLogger(t *testing.T) (*SugaredLogger, *slcoreWriteRecorder) {

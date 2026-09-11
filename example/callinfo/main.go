@@ -35,8 +35,8 @@ import (
 	"fmt"
 	"time"
 
-	"sllogger"
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 func main() {

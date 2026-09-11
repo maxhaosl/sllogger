@@ -28,9 +28,9 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/encoder"
-	"sllogger/slcore"
-	"sllogger/writer"
+	"github.com/maxhaosl/sllogger/encoder"
+	"github.com/maxhaosl/sllogger/slcore"
+	"github.com/maxhaosl/sllogger/writer"
 )
 
 // callInfoLogger builds a CALL_INFO template logger writing to a recorder.

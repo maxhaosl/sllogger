@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"sllogger/slcore"
+	"github.com/maxhaosl/sllogger/slcore"
 )
 
 // TestBuildWithOptions 覆盖 Config.Build(opts...) 传入额外 Option 的分支。
