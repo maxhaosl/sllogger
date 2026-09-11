@@ -2,6 +2,12 @@
 
 更新按 **更新日期 + 变更内容** 记录；版本号遵循语义化版本（SemVer）。
 
+## v1.2.1 — 2026-09-12
+
+正确性验证：
+
+- **[正确性验证] CALL_INFO 路径补齐日志丢失校验**：原 `loss_test.go` / `writer/loss_test.go` 仅覆盖 JSON 编码路径（按行 `json.Unmarshal` 校验）。新增 CALL_INFO 路径端到端校验 `TestCallInfoNoLossToFile`（`Logger → CALL_INFO 模板编码器 → 异步 RollingWriter`，10 万条）与压测基准 `BenchmarkCallInfoToFileNoLoss`（100 万条），按文件名前缀统计非空白行（不依赖 JSON 解析），断言落盘行数 == 写入条数。实测 100 万条 CALL_INFO 日志 **0 丢失，约 37.6 万条/秒（异步）**，与本库主路径（CALL_INFO）的需求一致。
+
 ## v1.2.0 — 2026-09-12
 
 缺陷修复、安全性与性能优化。

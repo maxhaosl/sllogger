@@ -309,21 +309,36 @@ func (je *jsonEncoder) appendFloat(f float64, bits int) {
 
 // --- ObjectEncoder (keyed) -------------------------------------------------
 
-func (je *jsonEncoder) AddString(key, val string) { je.addKey(key); appendJSONString(je.buf, val) }
-func (je *jsonEncoder) AddInt(key string, val int) { je.addKey(key); je.buf.AppendInt(int64(val)) }
-func (je *jsonEncoder) AddInt64(key string, val int64) { je.addKey(key); je.buf.AppendInt(val) }
-func (je *jsonEncoder) AddInt32(key string, val int32) { je.addKey(key); je.buf.AppendInt(int64(val)) }
-func (je *jsonEncoder) AddInt16(key string, val int16) { je.addKey(key); je.buf.AppendInt(int64(val)) }
-func (je *jsonEncoder) AddInt8(key string, val int8)   { je.addKey(key); je.buf.AppendInt(int64(val)) }
-func (je *jsonEncoder) AddUint(key string, val uint)   { je.addKey(key); je.buf.AppendUint(uint64(val)) }
+func (je *jsonEncoder) AddString(key, val string)        { je.addKey(key); appendJSONString(je.buf, val) }
+func (je *jsonEncoder) AddInt(key string, val int)       { je.addKey(key); je.buf.AppendInt(int64(val)) }
+func (je *jsonEncoder) AddInt64(key string, val int64)   { je.addKey(key); je.buf.AppendInt(val) }
+func (je *jsonEncoder) AddInt32(key string, val int32)   { je.addKey(key); je.buf.AppendInt(int64(val)) }
+func (je *jsonEncoder) AddInt16(key string, val int16)   { je.addKey(key); je.buf.AppendInt(int64(val)) }
+func (je *jsonEncoder) AddInt8(key string, val int8)     { je.addKey(key); je.buf.AppendInt(int64(val)) }
+func (je *jsonEncoder) AddUint(key string, val uint)     { je.addKey(key); je.buf.AppendUint(uint64(val)) }
 func (je *jsonEncoder) AddUint64(key string, val uint64) { je.addKey(key); je.buf.AppendUint(val) }
-func (je *jsonEncoder) AddUint32(key string, val uint32) { je.addKey(key); je.buf.AppendUint(uint64(val)) }
-func (je *jsonEncoder) AddUint16(key string, val uint16) { je.addKey(key); je.buf.AppendUint(uint64(val)) }
-func (je *jsonEncoder) AddUint8(key string, val uint8)   { je.addKey(key); je.buf.AppendUint(uint64(val)) }
-func (je *jsonEncoder) AddUintptr(key string, val uintptr) { je.addKey(key); je.buf.AppendUint(uint64(val)) }
+func (je *jsonEncoder) AddUint32(key string, val uint32) {
+	je.addKey(key)
+	je.buf.AppendUint(uint64(val))
+}
+func (je *jsonEncoder) AddUint16(key string, val uint16) {
+	je.addKey(key)
+	je.buf.AppendUint(uint64(val))
+}
+func (je *jsonEncoder) AddUint8(key string, val uint8) {
+	je.addKey(key)
+	je.buf.AppendUint(uint64(val))
+}
+func (je *jsonEncoder) AddUintptr(key string, val uintptr) {
+	je.addKey(key)
+	je.buf.AppendUint(uint64(val))
+}
 func (je *jsonEncoder) AddBool(key string, val bool)       { je.addKey(key); je.buf.AppendBool(val) }
 func (je *jsonEncoder) AddFloat64(key string, val float64) { je.addKey(key); je.appendFloat(val, 64) }
-func (je *jsonEncoder) AddFloat32(key string, val float32) { je.addKey(key); je.appendFloat(float64(val), 32) }
+func (je *jsonEncoder) AddFloat32(key string, val float32) {
+	je.addKey(key)
+	je.appendFloat(float64(val), 32)
+}
 func (je *jsonEncoder) AddDuration(key string, val time.Duration) {
 	je.addKey(key)
 	je.buf.AppendInt(val.Milliseconds())
@@ -332,14 +347,23 @@ func (je *jsonEncoder) AddTime(key string, val time.Time) {
 	je.addKey(key)
 	appendJSONString(je.buf, val.Format(time.RFC3339Nano))
 }
-func (je *jsonEncoder) AddComplex128(key string, val complex128) { je.addKey(key); je.appendFloat(real(val), 64) }
-func (je *jsonEncoder) AddComplex64(key string, val complex64)   { je.addKey(key); je.appendFloat(float64(real(val)), 32) }
+func (je *jsonEncoder) AddComplex128(key string, val complex128) {
+	je.addKey(key)
+	je.appendFloat(real(val), 64)
+}
+func (je *jsonEncoder) AddComplex64(key string, val complex64) {
+	je.addKey(key)
+	je.appendFloat(float64(real(val)), 32)
+}
 func (je *jsonEncoder) AddBinary(key string, val []byte) {
 	je.addKey(key)
 	b, _ := json.Marshal(string(val))
 	je.buf.AppendBytes(b)
 }
-func (je *jsonEncoder) AddByteString(key string, val []byte) { je.addKey(key); appendJSONString(je.buf, string(val)) }
+func (je *jsonEncoder) AddByteString(key string, val []byte) {
+	je.addKey(key)
+	appendJSONString(je.buf, string(val))
+}
 func (je *jsonEncoder) AddObject(key string, obj slcore.ObjectMarshaler) error {
 	je.addKey(key)
 	je.buf.AppendByte('{')
@@ -370,21 +394,21 @@ func (je *jsonEncoder) OpenNamespace(key string) {}
 
 // --- ArrayEncoder (elements) ----------------------------------------------
 
-func (je *jsonEncoder) AppendString(v string)    { je.sep(); appendJSONString(je.buf, v) }
-func (je *jsonEncoder) AppendInt(v int)           { je.sep(); je.buf.AppendInt(int64(v)) }
-func (je *jsonEncoder) AppendInt64(v int64)       { je.sep(); je.buf.AppendInt(v) }
-func (je *jsonEncoder) AppendInt32(v int32)       { je.sep(); je.buf.AppendInt(int64(v)) }
-func (je *jsonEncoder) AppendInt16(v int16)       { je.sep(); je.buf.AppendInt(int64(v)) }
-func (je *jsonEncoder) AppendInt8(v int8)         { je.sep(); je.buf.AppendInt(int64(v)) }
-func (je *jsonEncoder) AppendUint(v uint)         { je.sep(); je.buf.AppendUint(uint64(v)) }
-func (je *jsonEncoder) AppendUint64(v uint64)     { je.sep(); je.buf.AppendUint(v) }
-func (je *jsonEncoder) AppendUint32(v uint32)     { je.sep(); je.buf.AppendUint(uint64(v)) }
-func (je *jsonEncoder) AppendUint16(v uint16)     { je.sep(); je.buf.AppendUint(uint64(v)) }
-func (je *jsonEncoder) AppendUint8(v uint8)       { je.sep(); je.buf.AppendUint(uint64(v)) }
-func (je *jsonEncoder) AppendUintptr(v uintptr)   { je.sep(); je.buf.AppendUint(uint64(v)) }
-func (je *jsonEncoder) AppendBool(v bool)         { je.sep(); je.buf.AppendBool(v) }
-func (je *jsonEncoder) AppendFloat64(v float64)   { je.sep(); je.appendFloat(v, 64) }
-func (je *jsonEncoder) AppendFloat32(v float32)   { je.sep(); je.appendFloat(float64(v), 32) }
+func (je *jsonEncoder) AppendString(v string)          { je.sep(); appendJSONString(je.buf, v) }
+func (je *jsonEncoder) AppendInt(v int)                { je.sep(); je.buf.AppendInt(int64(v)) }
+func (je *jsonEncoder) AppendInt64(v int64)            { je.sep(); je.buf.AppendInt(v) }
+func (je *jsonEncoder) AppendInt32(v int32)            { je.sep(); je.buf.AppendInt(int64(v)) }
+func (je *jsonEncoder) AppendInt16(v int16)            { je.sep(); je.buf.AppendInt(int64(v)) }
+func (je *jsonEncoder) AppendInt8(v int8)              { je.sep(); je.buf.AppendInt(int64(v)) }
+func (je *jsonEncoder) AppendUint(v uint)              { je.sep(); je.buf.AppendUint(uint64(v)) }
+func (je *jsonEncoder) AppendUint64(v uint64)          { je.sep(); je.buf.AppendUint(v) }
+func (je *jsonEncoder) AppendUint32(v uint32)          { je.sep(); je.buf.AppendUint(uint64(v)) }
+func (je *jsonEncoder) AppendUint16(v uint16)          { je.sep(); je.buf.AppendUint(uint64(v)) }
+func (je *jsonEncoder) AppendUint8(v uint8)            { je.sep(); je.buf.AppendUint(uint64(v)) }
+func (je *jsonEncoder) AppendUintptr(v uintptr)        { je.sep(); je.buf.AppendUint(uint64(v)) }
+func (je *jsonEncoder) AppendBool(v bool)              { je.sep(); je.buf.AppendBool(v) }
+func (je *jsonEncoder) AppendFloat64(v float64)        { je.sep(); je.appendFloat(v, 64) }
+func (je *jsonEncoder) AppendFloat32(v float32)        { je.sep(); je.appendFloat(float64(v), 32) }
 func (je *jsonEncoder) AppendDuration(v time.Duration) { je.sep(); je.buf.AppendInt(v.Milliseconds()) }
 func (je *jsonEncoder) AppendTime(v time.Time) {
 	je.sep()

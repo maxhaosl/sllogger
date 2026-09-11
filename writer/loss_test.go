@@ -132,13 +132,13 @@ func TestRollingWriterNoLossSync(t *testing.T) {
 func TestRollingWriterNoLossAsync(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &Config{
-		Dir:            dir,
-		BaseName:       "lossa",
-		MaxSize:        1 << 20,
+		Dir:              dir,
+		BaseName:         "lossa",
+		MaxSize:          1 << 20,
 		RotationInterval: 0,
-		Async:          true,
-		QueueSize:      500_000,
-		BlockOnFull:    false,
+		Async:            true,
+		QueueSize:        500_000,
+		BlockOnFull:      false,
 	}
 	rw, err := NewRollingWriter(cfg)
 	if err != nil {

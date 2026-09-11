@@ -117,9 +117,9 @@ func run(dir string, hours int, keep time.Duration, mode string) error {
 	}
 
 	feignLog, err := sllogger.Config{
-		Level:    sllogger.NewAtomicLevelAt(sllogger.DebugLevel),
-		Outputs:  feignOutputs,
-		Clock:    fc,
+		Level:   sllogger.NewAtomicLevelAt(sllogger.DebugLevel),
+		Outputs: feignOutputs,
+		Clock:   fc,
 	}.Build()
 	if err != nil {
 		return err
