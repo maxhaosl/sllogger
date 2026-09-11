@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -97,6 +98,12 @@ type Config struct {
 	// values "stdout" and "stderr" are supported. Ignored when Rolling is
 	// set.
 	OutputPaths []string `json:"outputPaths" yaml:"outputPaths"`
+
+	// FileMode is the permission bits applied when creating log files via
+	// OutputPaths (and propagated to RollingWriter). Defaults to 0o600 so
+	// logs are owner-only; set to e.g. 0o640/0o644 if other accounts need to
+	// read them. Zero means "use the default".
+	FileMode os.FileMode `json:"fileMode" yaml:"fileMode"`
 
 	// ErrorOutputPaths is a list of paths to write internal logger errors to.
 	ErrorOutputPaths []string `json:"errorOutputPaths" yaml:"errorOutputPaths"`
@@ -283,7 +290,7 @@ func (cfg Config) Build(opts ...Option) (*Logger, error) {
 		return nil, err
 	}
 
-	errSink, _, err := Open(cfg.errorOutputPathsOrDefault()...)
+	errSink, _, err := OpenWithMode(cfg.errorOutputPathsOrDefault(), cfg.fileMode())
 	if err != nil {
 		for _, c := range closers {
 			_ = c.Close()
@@ -338,7 +345,7 @@ func (cfg Config) buildMultiOutput(opts ...Option) (*Logger, error) {
 		closers = append(closers, c...)
 	}
 
-	errSink, _, err := Open(cfg.errorOutputPathsOrDefault()...)
+	errSink, _, err := OpenWithMode(cfg.errorOutputPathsOrDefault(), cfg.fileMode())
 	if err != nil {
 		return nil, err
 	}
@@ -385,14 +392,26 @@ func (cfg Config) buildOutputCore(o Output) (slcore.Core, []io.Closer, error) {
 	// Precompute this output's level routing once at Build time so the
 	// hot-path Enabled check performs zero allocation (calling parseLevels on
 	// every entry previously allocated a map per output per entry).
+	allow := parseLevels(o.Levels)
+	deny := parseLevels(o.ExcludeLevels)
+	// A Levels/ExcludeLevels that yields no valid level (e.g. all entries are
+	// typos) would silently fall through to "allow everything" / "exclude
+	// nothing". Fail fast so a misconfiguration can't disable the filter.
+	if len(o.Levels) > 0 && len(allow) == 0 {
+		return nil, nil, fmt.Errorf("sllogger: Output %q Levels %v contains no valid level names", o.Name, o.Levels)
+	}
+	if len(o.ExcludeLevels) > 0 && len(deny) == 0 {
+		return nil, nil, fmt.Errorf("sllogger: Output %q ExcludeLevels %v contains no valid level names", o.Name, o.ExcludeLevels)
+	}
+
 	min := DebugLevel
 	if o.Level.l != nil {
 		min = o.Level.Level()
 	}
 	enab := &outputLevelEnabler{
 		global: cfg.Level,
-		allow:  parseLevels(o.Levels),
-		deny:   parseLevels(o.ExcludeLevels),
+		allow:  allow,
+		deny:   deny,
 		min:    min,
 	}
 	return slcore.NewCore(enc, lockIfNeeded(out), enab), closers, nil
@@ -431,7 +450,13 @@ func (e *outputLevelEnabler) Enabled(l Level) bool {
 // openOutputFor resolves a single output's syncer: a RollingWriter (optionally
 // fronted by the async writer) when r is set, otherwise the given paths.
 func (cfg Config) openOutputFor(r *writer.Config, paths []string) (slcore.WriteSyncer, []io.Closer, error) {
+	mode := cfg.fileMode()
 	if r != nil {
+		// Propagate the file mode into the rolling config unless the caller
+		// set one explicitly.
+		if r.FileMode == 0 {
+			r.FileMode = mode
+		}
 		rw, err := writer.NewRollingWriter(r)
 		if err != nil {
 			return nil, nil, fmt.Errorf("open rolling writer: %w", err)
@@ -452,11 +477,20 @@ func (cfg Config) openOutputFor(r *writer.Config, paths []string) (slcore.WriteS
 	if len(p) == 0 {
 		p = []string{"stderr"}
 	}
-	out, closeOut, err := Open(p...)
+	out, closeOut, err := OpenWithMode(p, mode)
 	if err != nil {
 		return nil, nil, err
 	}
 	return out, []io.Closer{closerFunc(closeOut)}, nil
+}
+
+// fileMode returns the configured file mode for created log files, defaulting
+// to 0o600 so logs are owner-only.
+func (cfg Config) fileMode() os.FileMode {
+	if cfg.FileMode == 0 {
+		return 0o600
+	}
+	return cfg.FileMode
 }
 
 // parseLevels resolves level names to a set. Unknown names are ignored; the

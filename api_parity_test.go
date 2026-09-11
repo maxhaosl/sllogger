@@ -95,7 +95,9 @@ func TestParitySampler(t *testing.T) {
 		}
 	}
 	// Exactly the first two entries ("i":0 and "i":1) should be written.
-	if got := bytes.Count(buf.Bytes(), []byte(`{"i":`)); got != 2 {
+	// Count the position-independent `"i":` key (the encoder orders entry-level
+	// keys before call-site fields, so the entry need not start with {"i":).
+	if got := bytes.Count(buf.Bytes(), []byte(`"i":`)); got != 2 {
 		t.Errorf("sampler wrote %d entries, want 2; buf=%q", got, buf.String())
 	}
 }

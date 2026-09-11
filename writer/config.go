@@ -45,6 +45,7 @@
 package writer
 
 import (
+	"os"
 	"time"
 
 	"github.com/maxhaosl/sllogger/slcore"
@@ -195,6 +196,12 @@ type Config struct {
 	// Clock allows injecting a custom clock for tests. Defaults to the
 	// system clock.
 	Clock slcore.Clock
+
+	// FileMode is the permission bits applied when a log file is created.
+	// Defaults to 0o600 (owner read/write only) so logs are not world- or
+	// group-readable. Set to e.g. 0o640 or 0o644 if other accounts must read
+	// them. Zero means "use the default".
+	FileMode os.FileMode
 }
 
 // Level is an alias for slcore.Level so callers can configure BlockLevel
@@ -233,6 +240,9 @@ func (c *Config) withDefaults() *Config {
 	}
 	if cp.Clock == nil {
 		cp.Clock = slcore.DefaultClock
+	}
+	if cp.FileMode == 0 {
+		cp.FileMode = 0o600
 	}
 	return &cp
 }

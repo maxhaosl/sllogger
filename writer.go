@@ -36,8 +36,20 @@ import (
 //
 // Without a scheme, the special paths "stdout" and "stderr" are interpreted as
 // os.Stdout and os.Stderr. Other paths are treated as local file paths
-// (opened for appending).
+// (opened for appending with 0o644, for backward compatibility).
+//
+// To control the permission bits of created files, use OpenWithMode.
 func Open(paths ...string) (slcore.WriteSyncer, func(), error) {
+	return OpenWithMode(paths, 0o644)
+}
+
+// OpenWithMode is like Open but uses mode when creating regular files. Pass a
+// more restrictive mode (e.g. 0o600) to keep log files owner-only. A mode of 0
+// falls back to 0o644 for backward compatibility.
+func OpenWithMode(paths []string, mode os.FileMode) (slcore.WriteSyncer, func(), error) {
+	if mode == 0 {
+		mode = 0o644
+	}
 	writers := make([]slcore.WriteSyncer, 0, len(paths))
 	closers := make([]io.Closer, 0, len(paths))
 	closeAll := func() {
@@ -57,7 +69,7 @@ func Open(paths ...string) (slcore.WriteSyncer, func(), error) {
 		case "stderr":
 			ws = os.Stderr
 		default:
-			f, ferr := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+			f, ferr := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, mode)
 			if ferr != nil {
 				// Fall back to the sink registry for registered URL schemes
 				// (e.g. "file:///tmp/a.log", or custom schemes from RegisterSink).

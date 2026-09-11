@@ -193,3 +193,45 @@ func TestMultiOutputPerFileFormat(t *testing.T) {
 		t.Errorf("mgmonitor (template) file must NOT contain json level key:\n%s", mgContent)
 	}
 }
+
+// TestBuildOutputInvalidLevels verifies that a Levels list containing no valid
+// level names (e.g. all typos) fails fast instead of silently allowing every
+// level through (which would disable the intended filter).
+func TestBuildOutputInvalidLevels(t *testing.T) {
+	cfg := Config{
+		Level: NewAtomicLevelAt(DebugLevel),
+		Outputs: []Output{
+			{Name: "bad", Encoding: "json", Levels: []string{"infox", "warnz"}},
+		},
+	}
+	if _, err := cfg.Build(); err == nil {
+		t.Fatal("expected error for Output with no valid Levels")
+	}
+}
+
+// TestBuildOutputInvalidExcludeLevels verifies the same guard for ExcludeLevels.
+func TestBuildOutputInvalidExcludeLevels(t *testing.T) {
+	cfg := Config{
+		Level: NewAtomicLevelAt(DebugLevel),
+		Outputs: []Output{
+			{Name: "bad", Encoding: "json", ExcludeLevels: []string{"infox"}},
+		},
+	}
+	if _, err := cfg.Build(); err == nil {
+		t.Fatal("expected error for Output with no valid ExcludeLevels")
+	}
+}
+
+// TestBuildOutputTraceAccepted confirms "trace" (mapped to DebugLevel) is a
+// valid level name and does not trip the all-invalid guard.
+func TestBuildOutputTraceAccepted(t *testing.T) {
+	cfg := Config{
+		Level: NewAtomicLevelAt(DebugLevel),
+		Outputs: []Output{
+			{Name: "t", Encoding: "json", Levels: []string{"trace"}},
+		},
+	}
+	if _, err := cfg.Build(); err != nil {
+		t.Fatalf("trace should be a valid level, got: %v", err)
+	}
+}

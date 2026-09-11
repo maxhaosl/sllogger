@@ -2,6 +2,30 @@
 
 更新按 **更新日期 + 变更内容** 记录；版本号遵循语义化版本（SemVer）。
 
+## v1.2.0 — 2026-09-12
+
+缺陷修复、安全性与性能优化。
+
+缺陷 / 安全修复：
+
+- **[崩溃修复] 旋转失败时 writer 被打坏**：`RollingWriter.rotateLocked` 原先先关闭旧文件再把 `w.file` 置为 `nil`，再打开新文件；一旦新文件打开失败（如磁盘满、目录只读），`w.file` 会永久为 `nil`，之后每次 `Write` 对 nil `*os.File` 解引用直接 panic，把整个 logger 打挂。改为**先打开新文件成功后再关闭旧文件并原子替换**，失败时保留旧文件（仍可用），`Write` 返回错误而非 panic；并加 `ErrWriteUnavailable` 兜底（任何情况下 `w.file==nil` 也只报错不崩溃）。新增 `writer/rotation_fail_test.go` 回归测试。
+- **[安全] 日志文件默认权限收紧为 `0o600`**：原先新建日志文件（`RollingWriter` 与 `Open` 路径）统一用 `0o644`，世界/组可读，敏感结构化日志存在泄露风险。新增 `FileMode` 配置（写入 `writer.Config.FileMode` 与根 `Config.FileMode`，向 `RollingWriter` 透传），默认 `0o600`（仅属主可读写）；需其他账号读取时显式设 `0o640`/`0o644`。`Open` 公共 API 保持 `0o644` 向后兼容，新增 `OpenWithMode` 供配置驱动路径按 `FileMode` 创建。
+- **[健壮性] `Levels`/`ExcludeLevels` 全为无效名时静默放行所有级别**：`parseLevels` 遇到全拼写错误（如 `["infox","warnz"]`）会生成空 map，原逻辑 `len(allow)==0` 退化为"白名单为空=全部放行"，使级别路由被悄悄关闭。`buildOutputCore` 现在在 `Build` 阶段**失败返回错误**（fail-fast），避免误配置静默失效。新增 `TestBuildOutputInvalidLevels`/`TestBuildOutputInvalidExcludeLevels`，并确认 `trace`（映射 `DebugLevel`）仍被接受。
+
+性能优化：
+
+- **[性能] JSON 编码器改为零反射流式写入**：原 `JSONEncoder` 每一条日志都构造 `map[string]interface{}` 再经 `encoding/json` 反射序列化，单条日志分配 23~29 次、约 1.5KB。新版 `JSONEncoder` 直接流式写入复用的 buffer（与 `TemplateEncoder` 同思路，零第三方依赖），彻底去掉每行的 map 分配与反射。实测（`BenchmarkLoggerThroughput`，单条 JSON 日志）：
+  - 吞吐 **2335 → 984 ns/op（约 2.4×）**，约 **42.8 万 → 102 万 条/秒**；
+  - 分配 **23 → 4 次/op**（写入文件路径 29 → 7 次/op）；
+  - 多输出 / 模板等场景同步提升。With 上下文在 `With` 时序列化一次并缓存，热路径不再重复反射。
+
+可观测性 / 正确性验证：
+
+- 新增日志丢失校验（压测 + 一致性）：`writer/loss_test.go`（同步 / 异步多协程）与根包 `loss_test.go`（整链路 Logger→JSON→异步 RollingWriter）写入 **100 万条**并逐行解析校验，断言落盘行数 == 写入条数、`Dropped == 0`、且每行均为合法 JSON。
+  - 实测 writer 层异步：**100 万条，0 丢失，约 75 万条/秒**；
+  - 整链路：**100 万条，0 丢失，约 38 万条/秒**。
+  - 压测基准 `BenchmarkRollingWriterNoLoss` / `BenchmarkLoggerToFileNoLoss` 同时充当压力测试与丢失校验，失败即 `b.Fatalf`。
+
 ## v1.1.0 — 2026-09-12
 
 新增多输出能力与按级别分流，并对多输出热路径做了零分配优化。

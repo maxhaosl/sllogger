@@ -30,6 +30,20 @@ import (
 // ErrClosed is returned when writing to a closed writer.
 var ErrClosed = errors.New("github.com/maxhaosl/sllogger/writer: writer is closed")
 
+// ErrWriteUnavailable is returned by Write when the underlying file is not
+// usable (e.g. a rotation failed and could not reopen). The writer stays in a
+// non-nil but degraded state instead of panicking on the next Write.
+var ErrWriteUnavailable = errors.New("github.com/maxhaosl/sllogger/writer: underlying file unavailable")
+
+// fileMode returns the configured file mode for newly created log files,
+// defaulting to 0o600 so logs are owner-only when no mode is set.
+func (w *RollingWriter) fileMode() os.FileMode {
+	if w.cfg.FileMode == 0 {
+		return 0o600
+	}
+	return w.cfg.FileMode
+}
+
 // RollingWriter writes logs to local files and rotates them by date (per
 // DateLayout), by configured interval (e.g. hourly) and by size.
 //
@@ -128,6 +142,11 @@ func (w *RollingWriter) Write(p []byte) (int, error) {
 
 	if w.closed {
 		return 0, ErrClosed
+	}
+	// Defensive guard: a rotation failure must never leave w.file nil, but if
+	// it ever does, refuse the write instead of dereferencing a nil *os.File.
+	if w.file == nil {
+		return 0, ErrWriteUnavailable
 	}
 
 	// A single call may carry a large batch (the async writer flushes many
@@ -268,50 +287,61 @@ func (w *RollingWriter) Close() error {
 
 // rotateLocked switches to a new file. The caller must hold w.mu.
 //
+// The replacement file is opened BEFORE the current one is closed, and the
+// state is only swapped in after the open succeeds. This guarantees that a
+// failed rotation (e.g. disk full) leaves the writer usable (w.file stays
+// non-nil, pointing at the still-open previous file) instead of leaving it in
+// a nil-file state that would panic on the next Write.
+//
 // The outgoing file is closed but not fsync'ed: rotation can happen very
 // often under load, and an fsync per rotation would dominate throughput.
 // Durability is provided by Sync() (which callers can schedule) and by
 // Close(), both of which do fsync.
 func (w *RollingWriter) rotateLocked(now, stamp time.Time, seq int) error {
-	if w.file != nil {
-		_ = w.file.Close()
-		w.file = nil
-	}
-	return w.openFile(now, stamp, seq, 0, false)
-}
-
-// openFile opens the log file for (stamp, seq) and initializes state.
-func (w *RollingWriter) openFile(now, stamp time.Time, seq int, initialSize int64, resume bool) error {
-	path := w.namer.FilePath(stamp, seq)
-
-	var (
-		file *os.File
-		size int64
-		err  error
-	)
-	if resume {
-		file, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0o644)
-		if err == nil {
-			size = initialSize
-		}
-	}
-	if file == nil {
-		file, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
-	}
+	file, err := w.createFile(stamp, seq)
 	if err != nil {
 		return err
 	}
-	if fi, statErr := file.Stat(); statErr == nil {
+	if w.file != nil {
+		_ = w.file.Close()
+	}
+	w.file = file
+	w.openTime = now
+	return nil
+}
+
+// createFile opens (creating if needed) the file for (stamp, seq) and updates
+// the writer's name/size/stamp/seq state on success. It never assigns nil to
+// w.file and never closes the previous file, so callers can swap atomically.
+func (w *RollingWriter) createFile(stamp time.Time, seq int) (*os.File, error) {
+	path := w.namer.FilePath(stamp, seq)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, w.fileMode())
+	if err != nil {
+		return nil, err
+	}
+	fi, statErr := file.Stat()
+	size := int64(0)
+	if statErr == nil {
 		size = fi.Size()
 	}
-
-	w.file = file
 	w.path = path
 	w.size = size
 	w.stamp = stamp
-	w.openTime = now
 	w.seq = seq
 	w.metrics.RotateCount.Add(1)
+	return file, nil
+}
+
+// openFile opens the log file for (stamp, seq) and initializes state. It is
+// used at startup (Build) and tolerates both fresh and resume (append) cases
+// via the same O_CREATE|O_APPEND open; the true size is taken from Stat.
+func (w *RollingWriter) openFile(now, stamp time.Time, seq int, initialSize int64, resume bool) error {
+	file, err := w.createFile(stamp, seq)
+	if err != nil {
+		return err
+	}
+	w.file = file
+	w.openTime = now
 	return nil
 }
 
