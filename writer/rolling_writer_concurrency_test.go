@@ -202,8 +202,8 @@ func TestConfigExposed(t *testing.T) {
 	if w.Config().BaseName != "LOG_CALL_INFO" {
 		t.Fatalf("BaseName = %q", w.Config().BaseName)
 	}
-	if w.Config().RotationInterval != DefaultRotationInterval {
-		t.Fatalf("RotationInterval = %v", w.Config().RotationInterval)
+	if w.Config().RotationInterval != 0 {
+		t.Fatalf("RotationInterval = %v, want 0 (0 means interval rotation disabled; set a duration to enable)", w.Config().RotationInterval)
 	}
 }
 

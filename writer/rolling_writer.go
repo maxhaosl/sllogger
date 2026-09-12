@@ -23,6 +23,7 @@ package writer
 import (
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -62,7 +63,8 @@ type RollingWriter struct {
 	size     int64
 	stamp    time.Time // truncated to DateLayout granularity, rotates on change
 	openTime time.Time // when the current file was opened (interval rotation)
-	seq      int       // in-day sequence number, 0 = first file of the day
+	seq      int       // in-day sequence number; 0 = first/primary file of the day
+	baseSeq  int       // first-file sequence: 1 when NamePattern embeds {seq}, else 0
 	closed   bool
 
 	stopCleaner chan struct{}
@@ -90,6 +92,14 @@ func NewRollingWriter(cfg *Config) (*RollingWriter, error) {
 		cfg:         cfg,
 		namer:       newNamer(cfg),
 		stopCleaner: make(chan struct{}),
+	}
+	// baseSeq 决定“当天首文件”的序号：当 NamePattern 内嵌 {seq} 时首文件即为
+	// 第 1 个（.01.），否则沿用 0（无序号主文件）。这样既能支持“序号始终存在”的
+	// 命名（如 {base}.{date}.{seq}.{service}.log），又完全保持默认（无 {seq}）
+	// 模式的原行为（首文件无序号、滚动后才出现 .01.）。
+	w.baseSeq = 0
+	if strings.Contains(cfg.NamePattern, "{seq}") {
+		w.baseSeq = 1
 	}
 	w.cleaner = newCleaner(cfg, w.namer, &w.metrics)
 	// Cleanup must never delete the file being written to.
@@ -161,8 +171,9 @@ func (w *RollingWriter) Write(p []byte) (int, error) {
 		switch {
 		case !stamp.Equal(w.stamp):
 			// Date change: the file name contains the date, so it must
-			// rotate and reset the sequence number (design doc #24).
-			if err := w.rotateLocked(now, stamp, 0); err != nil {
+			// rotate and reset the sequence number to baseSeq for the new hour
+			// (design doc #24): 1 when NamePattern embeds {seq}, otherwise 0.
+			if err := w.rotateLocked(now, stamp, w.baseSeq); err != nil {
 				return written, err
 			}
 		case w.cfg.RotationInterval > 0 && now.Sub(w.openTime) >= w.cfg.RotationInterval:
@@ -376,7 +387,9 @@ func (w *RollingWriter) findResumeFile(stamp time.Time) (seq int, size int64, re
 		}
 	}
 	if !foundAny {
-		return 0, 0, false
+		// 全新启动（当前小时无任何文件）：首文件序号取 baseSeq——NamePattern 内嵌
+		// {seq} 时为 1（得到 .01.{service}.log），否则为 0（无序号主文件）。
+		return w.baseSeq, 0, false
 	}
 	if w.cfg.MaxSize <= 0 || maxSize < w.cfg.MaxSize {
 		return maxSeq, maxSize, true

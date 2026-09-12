@@ -223,8 +223,10 @@ func (c *Config) withDefaults() *Config {
 	if cp.MaxSize == 0 {
 		cp.MaxSize = DefaultMaxSize
 	}
+	// RotationInterval == 0 表示禁用定时(interval)滚动，仅按 DateLayout(小时)与
+	// 文件大小滚动；非 0（如 1h）才启用定时滚动。此处不再强制默认 1h。
 	if cp.RotationInterval == 0 {
-		cp.RotationInterval = DefaultRotationInterval
+		cp.RotationInterval = 0
 	}
 	if cp.CleanupInterval <= 0 {
 		cp.CleanupInterval = DefaultCleanupInterval
